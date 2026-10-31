@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mermaid Viewer</title>
+  <meta name="description" content="ブラウザ上でMermaidをリアルタイムプレビューし、SVG/PNGで保存できる単一HTMLファイルのビューワーです。">
+  <style>
+    :root {
+      --color-bg: #f8fafc;
+      --color-surface: #ffffff;
+      --color-text: #1a1a1c;
+      --color-muted: #626264;
+      --color-border: #d8d8db;
+      --color-primary: #0017c1;
+      --color-primary-hover: #00118f;
+      --color-danger-bg: #fff2f2;
+      --color-danger: #b50000;
+      --color-focus: #ffdc00;
+      --shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+      --radius: 12px;
+      --header-height: 72px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      color: var(--color-text);
+      background: var(--color-bg);
+      font-family: sans-serif;
+    }
+
+    body {
+      display: grid;
+      grid-template-rows: var(--header-height) 1fr;
+      min-height: 100vh;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 14px 24px;
+      background: var(--color-surface);
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .title-group {
+      min-width: 0;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.25rem;
+      line-height: 1.4;
+      letter-spacing: 0.02em;
+    }
+
+    .subtitle {
+      margin: 2px 0 0;
+      color: var(--color-muted);
+      font-size: 0.875rem;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    button {
+      appearance: none;
+      border: 1px solid var(--color-primary);
+      border-radius: 8px;
+      padding: 10px 14px;
+      background: var(--color-primary);
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
+    }
+
+    button:hover:not(:disabled) {
+      background: var(--color-primary-hover);
+      border-color: var(--color-primary-hover);
+    }
+
+    button:active:not(:disabled) { transform: translateY(1px); }
+
+    button.secondary {
+      background: #fff;
+      color: var(--color-primary);
+    }
+
+    button.secondary:hover:not(:disabled) {
+      background: #eef2ff;
+      color: var(--color-primary-hover);
+    }
+
+    button:disabled {
+      border-color: #b8b8bb;
+      background: #d8d8db;
+      color: #626264;
+      cursor: not-allowed;
+    }
+
+    button:focus-visible,
+    textarea:focus-visible {
+      outline: 4px solid var(--color-focus);
+      outline-offset: 2px;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(320px, 44%) minmax(360px, 1fr);
+      gap: 16px;
+      padding: 16px;
+      min-height: 0;
+    }
+
+    .panel {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-height: 0;
+      overflow: hidden;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--color-border);
+      background: #fff;
+    }
+
+    .panel-title {
+      margin: 0;
+      font-size: 1rem;
+      line-height: 1.5;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      color: var(--color-muted);
+      font-size: 0.875rem;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: #008000;
+    }
+
+    .status.error .status-dot { background: var(--color-danger); }
+    .status.error { color: var(--color-danger); }
+
+    textarea {
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      resize: none;
+      border: 0;
+      padding: 16px;
+      color: #111;
+      background: #fcfcfd;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      font-size: 0.95rem;
+      line-height: 1.55;
+      tab-size: 2;
+    }
+
+    .preview-wrap {
+      position: relative;
+      min-height: 0;
+      overflow: auto;
+      padding: 20px;
+      background:
+        linear-gradient(45deg, #f3f4f6 25%, transparent 25%),
+        linear-gradient(-45deg, #f3f4f6 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #f3f4f6 75%),
+        linear-gradient(-45deg, transparent 75%, #f3f4f6 75%);
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+      background-size: 20px 20px;
+    }
+
+    #preview {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      min-width: max-content;
+      min-height: 100%;
+      padding: 20px;
+      background: #fff;
+      border: 1px solid var(--color-border);
+      border-radius: 10px;
+    }
+
+    #preview svg {
+      max-width: none;
+      height: auto;
+    }
+
+    .error-box {
+      position: absolute;
+      right: 20px;
+      bottom: 20px;
+      left: 20px;
+      max-height: 42%;
+      overflow: auto;
+      padding: 12px 14px;
+      color: var(--color-danger);
+      background: var(--color-danger-bg);
+      border: 1px solid #ffb3b3;
+      border-radius: 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      font-size: 0.85rem;
+      white-space: pre-wrap;
+    }
+
+    .hidden { display: none; }
+
+    .note {
+      color: var(--color-muted);
+      font-size: 0.82rem;
+    }
+
+    @media (max-width: 900px) {
+      body { grid-template-rows: auto 1fr; }
+      header { align-items: flex-start; flex-direction: column; }
+      .actions { justify-content: flex-start; }
+      main { grid-template-columns: 1fr; grid-template-rows: 46vh 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="title-group">
+      <h1>Mermaid Viewer</h1>
+      <p class="subtitle">入力内容は外部送信しません。Mermaid.js本体のみCDNから読み込みます。</p>
+    </div>
+    <div class="actions" aria-label="ダウンロード操作">
+      <button type="button" id="downloadSvg">SVGダウンロード</button>
+      <button type="button" id="downloadPng">PNGダウンロード</button>
+      <button type="button" id="resetSample" class="secondary">サンプルに戻す</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="panel" aria-labelledby="input-title">
+      <div class="panel-header">
+        <h2 class="panel-title" id="input-title">Mermaid入力</h2>
+        <span class="note">Ctrl + S でSVG保存</span>
+      </div>
+      <textarea id="editor" spellcheck="false" aria-label="Mermaidコード入力欄"></textarea>
+    </section>
+
+    <section class="panel" aria-labelledby="preview-title">
+      <div class="panel-header">
+        <h2 class="panel-title" id="preview-title">プレビュー</h2>
+        <span id="status" class="status"><span class="status-dot" aria-hidden="true"></span><span>準備中</span></span>
+      </div>
+      <div class="preview-wrap">
+        <div id="preview" aria-live="polite"></div>
+        <div id="errorBox" class="error-box hidden" role="alert"></div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module">
+    import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+
+    const sample = `flowchart LR
+  A[Mermaidを入力] --> B{リアルタイム表示}
+  B -->|OK| C[SVGで保存]
+  B -->|OK| D[PNGで保存]
+  B -->|構文エラー| E[エラー表示]`;
+
+    const editor = document.getElementById("editor");
+    const preview = document.getElementById("preview");
+    const errorBox = document.getElementById("errorBox");
+    const status = document.getElementById("status");
+    const downloadSvgButton = document.getElementById("downloadSvg");
+    const downloadPngButton = document.getElementById("downloadPng");
+    const resetSampleButton = document.getElementById("resetSample");
+
+    let latestSvg = "";
+    let renderTimer = null;
+    let renderCounter = 0;
+
+    // Mermaidの設定。htmlLabelsをfalseにするとSVG/PNG保存時の互換性が比較的安定します。
+    mermaid.initialize({
+      startOnLoad: false,
+      securityLevel: "strict",
+      theme: "default",
+      flowchart: { htmlLabels: false, useMaxWidth: false }
+    });
+
+    function setStatus(kind, message) {
+      status.classList.toggle("error", kind === "error");
+      status.querySelector("span:last-child").textContent = message;
+      const disabled = kind === "error" || !latestSvg;
+      downloadSvgButton.disabled = disabled;
+      downloadPngButton.disabled = disabled;
+    }
+
+    function showError(message) {
+      errorBox.textContent = message;
+      errorBox.classList.remove("hidden");
+      setStatus("error", "エラー");
+    }
+
+    function clearError() {
+      errorBox.textContent = "";
+      errorBox.classList.add("hidden");
+    }
+
+    function debounceRender() {
+      clearTimeout(renderTimer);
+      renderTimer = setTimeout(renderDiagram, 250);
+    }
+
+    async function renderDiagram() {
+      const code = editor.value.trim();
+      const current = ++renderCounter;
+
+      if (!code) {
+        latestSvg = "";
+        preview.innerHTML = "<p>Mermaidコードを入力してください。</p>";
+        clearError();
+        setStatus("ok", "未入力");
+        return;
+      }
+
+      setStatus("ok", "描画中");
+
+      try {
+        // parseで事前検証し、renderでSVG文字列を取得します。
+        await mermaid.parse(code);
+        const id = `mermaid-${Date.now()}-${current}`;
+        const result = await mermaid.render(id, code);
+
+        // 古い非同期描画結果が後から戻ってきた場合は破棄します。
+        if (current !== renderCounter) return;
+
+        latestSvg = result.svg;
+        preview.innerHTML = latestSvg;
+        if (typeof result.bindFunctions === "function") {
+          result.bindFunctions(preview);
+        }
+        clearError();
+        setStatus("ok", "表示中");
+      } catch (error) {
+        if (current !== renderCounter) return;
+        latestSvg = "";
+        showError(error?.message || String(error));
+      }
+    }
+
+    function makeFileName(extension) {
+      const now = new Date();
+      const pad = (n) => String(n).padStart(2, "0");
+      const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+      return `mermaid-${stamp}.${extension}`;
+    }
+
+    function downloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function getSvgWithXmlHeader() {
+      if (!latestSvg) throw new Error("ダウンロード可能なSVGがありません。");
+      return latestSvg.startsWith("<?xml") ? latestSvg : `<?xml version="1.0" encoding="UTF-8"?>\n${latestSvg}`;
+    }
+
+    function downloadSvg() {
+      const svgText = getSvgWithXmlHeader();
+      const blob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
+      downloadBlob(blob, makeFileName("svg"));
+    }
+
+    async function downloadPng() {
+      const svgText = getSvgWithXmlHeader();
+      const svgBlob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
+      const svgUrl = URL.createObjectURL(svgBlob);
+
+      try {
+        const img = new Image();
+        img.decoding = "async";
+        const loaded = new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = () => reject(new Error("SVGからPNGへの変換に失敗しました。"));
+        });
+        img.src = svgUrl;
+        await loaded;
+
+        const svgElement = preview.querySelector("svg");
+        const rect = svgElement?.getBoundingClientRect();
+        const width = Math.max(1, Math.ceil(rect?.width || img.naturalWidth || 1200));
+        const height = Math.max(1, Math.ceil(rect?.height || img.naturalHeight || 800));
+        const scale = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width * scale;
+        canvas.height = height * scale;
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            showError("PNGデータを作成できませんでした。ブラウザの制約により失敗した可能性があります。");
+            return;
+          }
+          downloadBlob(blob, makeFileName("png"));
+        }, "image/png");
+      } finally {
+        URL.revokeObjectURL(svgUrl);
+      }
+    }
+
+    editor.addEventListener("input", debounceRender);
+    downloadSvgButton.addEventListener("click", downloadSvg);
+    downloadPngButton.addEventListener("click", () => downloadPng().catch((error) => showError(error?.message || String(error))));
+    resetSampleButton.addEventListener("click", () => {
+      editor.value = sample;
+      renderDiagram();
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        if (!downloadSvgButton.disabled) downloadSvg();
+      }
+    });
+
+    editor.value = sample;
+    renderDiagram();
+  </script>
+</body>
+</html>

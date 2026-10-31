@@ -1,0 +1,758 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>QRコード作成ツール</title>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+  <style>
+    :root {
+      --color-primary: #0017c1;
+      --color-primary-hover: #000082;
+      --color-text: #1a1a1c;
+      --color-muted: #626264;
+      --color-border: #c8c8cb;
+      --color-border-strong: #949497;
+      --color-bg: #ffffff;
+      --color-bg-soft: #f7f7f8;
+      --color-info-bg: #f1f5ff;
+      --color-success-bg: #ecfdf3;
+      --color-warning-bg: #fff7e6;
+      --color-danger: #d18d00;
+      --radius: 12px;
+      --shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--color-text);
+      background: linear-gradient(180deg, #f7f9ff 0%, #ffffff 42%);
+      font-family: sans-serif;
+      line-height: 1.7;
+    }
+
+    a { color: var(--color-primary); }
+
+    .page {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 32px 0 48px;
+    }
+
+    header {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.9rem, 4vw, 3rem);
+      line-height: 1.25;
+      letter-spacing: 0.02em;
+    }
+
+    .lead {
+      margin: 0;
+      color: var(--color-muted);
+      font-size: 1rem;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+      gap: 24px;
+      align-items: start;
+    }
+
+    @media (max-width: 880px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      background: var(--color-bg);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .card__header {
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--color-border);
+      background: var(--color-bg-soft);
+    }
+
+    .card__header h2 {
+      margin: 0;
+      font-size: 1.2rem;
+      line-height: 1.4;
+    }
+
+    .card__body {
+      padding: 20px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .form-grid--single { grid-template-columns: 1fr; }
+
+    @media (max-width: 620px) {
+      .form-grid { grid-template-columns: 1fr; }
+    }
+
+    .field {
+      display: grid;
+      gap: 7px;
+    }
+
+    .field--full { grid-column: 1 / -1; }
+
+    label, legend {
+      font-weight: 700;
+      line-height: 1.5;
+    }
+
+    .required {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 0 6px;
+      border-radius: 4px;
+      color: #ffffff;
+      background: #c62828;
+      font-size: 0.75rem;
+      line-height: 1.6;
+      vertical-align: text-top;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      min-height: 44px;
+      padding: 10px 12px;
+      border: 1px solid var(--color-border-strong);
+      border-radius: 8px;
+      background: #ffffff;
+      color: var(--color-text);
+      font: inherit;
+    }
+
+    textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+
+    input[type="color"] {
+      min-height: 44px;
+      padding: 3px;
+    }
+
+    input[type="checkbox"] {
+      width: 20px;
+      min-height: 20px;
+      accent-color: var(--color-primary);
+    }
+
+    input:focus, textarea:focus, select:focus, button:focus {
+      outline: 3px solid #ffd43b;
+      outline-offset: 2px;
+      border-color: var(--color-primary);
+    }
+
+    .hint {
+      color: var(--color-muted);
+      font-size: 0.9rem;
+      line-height: 1.55;
+    }
+
+    .mode-panel {
+      display: none;
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px dashed var(--color-border);
+    }
+
+    .mode-panel.is-active { display: block; }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 44px;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    button {
+      min-height: 44px;
+      padding: 10px 18px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .button-primary {
+      color: #ffffff;
+      background: var(--color-primary);
+    }
+
+    .button-primary:hover { background: var(--color-primary-hover); }
+
+    .button-secondary {
+      color: var(--color-primary);
+      background: #ffffff;
+      border-color: var(--color-primary);
+    }
+
+    .button-secondary:hover { background: var(--color-info-bg); }
+
+    .button-ghost {
+      color: var(--color-text);
+      background: var(--color-bg-soft);
+      border-color: var(--color-border);
+    }
+
+    .preview-wrap {
+      display: grid;
+      gap: 16px;
+      justify-items: center;
+      text-align: center;
+    }
+
+    .qr-box {
+      display: grid;
+      place-items: center;
+      width: 100%;
+      min-height: 360px;
+      padding: 20px;
+      border: 1px dashed var(--color-border-strong);
+      border-radius: var(--radius);
+      background: #ffffff;
+    }
+
+    canvas {
+      max-width: 100%;
+      height: auto;
+      image-rendering: pixelated;
+    }
+
+    .status {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 8px;
+      background: var(--color-info-bg);
+      color: var(--color-text);
+      text-align: left;
+      font-size: 0.92rem;
+    }
+
+    .status.warning { background: var(--color-warning-bg); }
+    .status.success { background: var(--color-success-bg); }
+
+    .output-string {
+      width: 100%;
+      min-height: 120px;
+      font-family: sans-serif;
+      word-break: break-all;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header>
+      <h1>QRコード作成ツール</h1>
+      <p class="lead">通常テキスト、URL、メール、電話、SMS、Wi-Fi、vCardの入力モードを切り替えてQRコードを作成できます。作成したQRコードはPNGまたはSVGで保存できます。</p>
+    </header>
+
+    <div class="layout">
+      <section class="card" aria-labelledby="input-heading">
+        <div class="card__header">
+          <h2 id="input-heading">入力内容</h2>
+        </div>
+        <div class="card__body">
+          <div class="form-grid form-grid--single">
+            <div class="field">
+              <label for="mode">入力モード</label>
+              <select id="mode">
+                <option value="free">テキスト・URL</option>
+                <option value="mailto">メール作成用 mailto</option>
+                <option value="wifi">Wi-Fi接続情報</option>
+                <option value="tel">電話番号</option>
+                <option value="sms">SMS</option>
+                <option value="vcard">連絡先 vCard</option>
+              </select>
+              <div class="hint">最終的にQRコードへ変換する文字列の形式を切り替えます。</div>
+            </div>
+          </div>
+
+          <div id="panel-free" class="mode-panel is-active">
+            <div class="form-grid form-grid--single">
+              <div class="field">
+                <label for="freeText">テキストまたはURL<span class="required">必須</span></label>
+                <textarea id="freeText" placeholder="例：https://www.example.jp/"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div id="panel-mailto" class="mode-panel">
+            <div class="form-grid">
+              <div class="field field--full">
+                <label for="mailTo">宛先メールアドレス<span class="required">必須</span></label>
+                <input id="mailTo" type="email" placeholder="example@example.jp">
+              </div>
+              <div class="field field--full">
+                <label for="mailSubject">件名</label>
+                <input id="mailSubject" type="text" placeholder="お問い合わせ">
+              </div>
+              <div class="field field--full">
+                <label for="mailBody">本文</label>
+                <textarea id="mailBody" placeholder="本文を入力してください。"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div id="panel-wifi" class="mode-panel">
+            <div class="form-grid">
+              <div class="field">
+                <label for="wifiSsid">SSID<span class="required">必須</span></label>
+                <input id="wifiSsid" type="text" placeholder="NetworkName">
+              </div>
+              <div class="field">
+                <label for="wifiType">暗号化方式</label>
+                <select id="wifiType">
+                  <option value="WPA">WPA/WPA2/WPA3</option>
+                  <option value="WEP">WEP</option>
+                  <option value="nopass">なし</option>
+                </select>
+              </div>
+              <div class="field field--full">
+                <label for="wifiPassword">パスワード</label>
+                <input id="wifiPassword" type="text" placeholder="password">
+              </div>
+              <div class="field field--full checkbox-row">
+                <input id="wifiHidden" type="checkbox">
+                <label for="wifiHidden">ステルスSSIDとして扱う</label>
+              </div>
+            </div>
+          </div>
+
+          <div id="panel-tel" class="mode-panel">
+            <div class="form-grid form-grid--single">
+              <div class="field">
+                <label for="telNumber">電話番号<span class="required">必須</span></label>
+                <input id="telNumber" type="tel" placeholder="076-000-0000">
+              </div>
+            </div>
+          </div>
+
+          <div id="panel-sms" class="mode-panel">
+            <div class="form-grid">
+              <div class="field field--full">
+                <label for="smsNumber">宛先電話番号<span class="required">必須</span></label>
+                <input id="smsNumber" type="tel" placeholder="090-0000-0000">
+              </div>
+              <div class="field field--full">
+                <label for="smsBody">本文</label>
+                <textarea id="smsBody" placeholder="SMS本文"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div id="panel-vcard" class="mode-panel">
+            <div class="form-grid">
+              <div class="field">
+                <label for="vcardLast">姓</label>
+                <input id="vcardLast" type="text" placeholder="山田">
+              </div>
+              <div class="field">
+                <label for="vcardFirst">名<span class="required">必須</span></label>
+                <input id="vcardFirst" type="text" placeholder="太郎">
+              </div>
+              <div class="field">
+                <label for="vcardOrg">組織名</label>
+                <input id="vcardOrg" type="text" placeholder="〇〇県">
+              </div>
+              <div class="field">
+                <label for="vcardTitle">役職</label>
+                <input id="vcardTitle" type="text" placeholder="主事">
+              </div>
+              <div class="field">
+                <label for="vcardTel">電話番号</label>
+                <input id="vcardTel" type="tel" placeholder="076-000-0000">
+              </div>
+              <div class="field">
+                <label for="vcardEmail">メールアドレス</label>
+                <input id="vcardEmail" type="email" placeholder="example@example.jp">
+              </div>
+              <div class="field field--full">
+                <label for="vcardUrl">Webサイト</label>
+                <input id="vcardUrl" type="url" placeholder="https://www.example.jp/">
+              </div>
+            </div>
+          </div>
+
+          <hr aria-hidden="true" style="border: 0; border-top: 1px solid var(--color-border); margin: 24px 0;">
+
+          <div class="form-grid">
+            <div class="field">
+              <label for="size">画像サイズ</label>
+              <select id="size">
+                <option value="256">256 px</option>
+                <option value="512" selected>512 px</option>
+                <option value="768">768 px</option>
+                <option value="1024">1024 px</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="ecLevel">誤り訂正率</label>
+              <select id="ecLevel">
+                <option value="L">L 約7%</option>
+                <option value="M" selected>M 約15%</option>
+                <option value="Q">Q 約25%</option>
+                <option value="H">H 約30%</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="foreground">前景色</label>
+              <input id="foreground" type="color" value="#000000">
+            </div>
+            <div class="field">
+              <label for="background">背景色</label>
+              <input id="background" type="color" value="#ffffff">
+            </div>
+          </div>
+
+          <div class="actions">
+            <button type="button" class="button-primary" id="makeButton">QRコードを作成</button>
+            <button type="button" class="button-secondary" id="downloadPngButton">PNGで保存</button>
+            <button type="button" class="button-secondary" id="downloadSvgButton">SVGで保存</button>
+            <button type="button" class="button-ghost" id="copyButton">変換文字列をコピー</button>
+          </div>
+        </div>
+      </section>
+
+      <aside class="card" aria-labelledby="preview-heading">
+        <div class="card__header">
+          <h2 id="preview-heading">プレビュー</h2>
+        </div>
+        <div class="card__body preview-wrap">
+          <div id="status" class="status" role="status" aria-live="polite">入力内容を確認して「QRコードを作成」を押してください。</div>
+          <div class="qr-box">
+            <canvas id="qrCanvas" width="512" height="512" aria-label="QRコードのプレビュー"></canvas>
+          </div>
+          <div class="field" style="width: 100%; text-align: left;">
+            <label for="outputString">QRコードに変換される文字列</label>
+            <textarea id="outputString" class="output-string" readonly></textarea>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <script>
+    // 入力要素をまとめて取得します。
+    const elements = {
+      mode: document.getElementById('mode'),
+      size: document.getElementById('size'),
+      ecLevel: document.getElementById('ecLevel'),
+      foreground: document.getElementById('foreground'),
+      background: document.getElementById('background'),
+      status: document.getElementById('status'),
+      canvas: document.getElementById('qrCanvas'),
+      outputString: document.getElementById('outputString'),
+      makeButton: document.getElementById('makeButton'),
+      downloadPngButton: document.getElementById('downloadPngButton'),
+      downloadSvgButton: document.getElementById('downloadSvgButton'),
+      copyButton: document.getElementById('copyButton')
+    };
+
+    let currentQr = null;
+    let currentSvg = '';
+
+    // QRコードのWi-Fi形式では、区切り記号をエスケープする必要があります。
+    function escapeWifiValue(value) {
+      return String(value).replace(/([\\;,:\"])/g, '\\$1');
+    }
+
+    // SVGやHTML属性に埋め込む値を安全にエスケープします。
+    function escapeXml(value) {
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+    }
+
+    // vCardの改行や区切りに影響する文字を簡易的にエスケープします。
+    function escapeVcard(value) {
+      return String(value)
+        .replace(/\\/g, '\\\\')
+        .replace(/\n/g, '\\n')
+        .replace(/,/g, '\\,')
+        .replace(/;/g, '\\;');
+    }
+
+    function getValue(id) {
+      return document.getElementById(id).value.trim();
+    }
+
+    // 入力モードに応じて、QRコードへ格納する最終文字列を組み立てます。
+    function buildQrText() {
+      const mode = elements.mode.value;
+
+      if (mode === 'free') {
+        const text = getValue('freeText');
+        if (!text) throw new Error('テキストまたはURLを入力してください。');
+        return text;
+      }
+
+      if (mode === 'mailto') {
+        const to = getValue('mailTo');
+        if (!to) throw new Error('宛先メールアドレスを入力してください。');
+        const params = [];
+        const subject = getValue('mailSubject');
+        const body = document.getElementById('mailBody').value;
+        if (subject) params.push('subject=' + encodeURIComponent(subject));
+        if (body) params.push('body=' + encodeURIComponent(body));
+        return 'mailto:' + encodeURIComponent(to).replace(/%40/g, '@') + (params.length ? '?' + params.join('&') : '');
+      }
+
+      if (mode === 'wifi') {
+        const ssid = getValue('wifiSsid');
+        if (!ssid) throw new Error('SSIDを入力してください。');
+        const type = document.getElementById('wifiType').value;
+        const password = document.getElementById('wifiPassword').value;
+        const hidden = document.getElementById('wifiHidden').checked ? 'true' : 'false';
+        const passwordPart = type === 'nopass' ? '' : 'P:' + escapeWifiValue(password) + ';';
+        return 'WIFI:T:' + type + ';S:' + escapeWifiValue(ssid) + ';' + passwordPart + 'H:' + hidden + ';;';
+      }
+
+      if (mode === 'tel') {
+        const number = getValue('telNumber');
+        if (!number) throw new Error('電話番号を入力してください。');
+        return 'tel:' + number;
+      }
+
+      if (mode === 'sms') {
+        const number = getValue('smsNumber');
+        if (!number) throw new Error('宛先電話番号を入力してください。');
+        const body = document.getElementById('smsBody').value;
+        return 'SMSTO:' + number + ':' + body;
+      }
+
+      if (mode === 'vcard') {
+        const last = getValue('vcardLast');
+        const first = getValue('vcardFirst');
+        if (!first && !last) throw new Error('氏名を入力してください。');
+        const org = getValue('vcardOrg');
+        const title = getValue('vcardTitle');
+        const tel = getValue('vcardTel');
+        const email = getValue('vcardEmail');
+        const url = getValue('vcardUrl');
+        const fullName = [last, first].filter(Boolean).join(' ');
+        const lines = [
+          'BEGIN:VCARD',
+          'VERSION:3.0',
+          'N:' + escapeVcard(last) + ';' + escapeVcard(first) + ';;;',
+          'FN:' + escapeVcard(fullName)
+        ];
+        if (org) lines.push('ORG:' + escapeVcard(org));
+        if (title) lines.push('TITLE:' + escapeVcard(title));
+        if (tel) lines.push('TEL;TYPE=WORK,VOICE:' + escapeVcard(tel));
+        if (email) lines.push('EMAIL:' + escapeVcard(email));
+        if (url) lines.push('URL:' + escapeVcard(url));
+        lines.push('END:VCARD');
+        return lines.join('\n');
+      }
+
+      throw new Error('入力モードが不正です。');
+    }
+
+    function makeQrObject(text) {
+      if (typeof qrcode !== 'function') {
+        throw new Error('QRコード生成ライブラリを読み込めませんでした。ネットワーク接続またはCDNの到達性を確認してください。');
+      }
+      const qr = qrcode(0, elements.ecLevel.value);
+      qr.addData(text);
+      qr.make();
+      return qr;
+    }
+
+    function drawQrToCanvas(qr) {
+      const canvas = elements.canvas;
+      const ctx = canvas.getContext('2d');
+      const size = Number(elements.size.value);
+      const quietZone = 4;
+      const moduleCount = qr.getModuleCount();
+      const totalModules = moduleCount + quietZone * 2;
+      const cellSize = size / totalModules;
+      const fg = elements.foreground.value;
+      const bg = elements.background.value;
+
+      canvas.width = size;
+      canvas.height = size;
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, size, size);
+      ctx.fillStyle = fg;
+
+      for (let row = 0; row < moduleCount; row += 1) {
+        for (let col = 0; col < moduleCount; col += 1) {
+          if (qr.isDark(row, col)) {
+            const x = Math.round((col + quietZone) * cellSize);
+            const y = Math.round((row + quietZone) * cellSize);
+            const nextX = Math.round((col + quietZone + 1) * cellSize);
+            const nextY = Math.round((row + quietZone + 1) * cellSize);
+            ctx.fillRect(x, y, nextX - x, nextY - y);
+          }
+        }
+      }
+    }
+
+    function buildSvg(qr) {
+      const quietZone = 4;
+      const moduleCount = qr.getModuleCount();
+      const totalModules = moduleCount + quietZone * 2;
+      const fg = escapeXml(elements.foreground.value);
+      const bg = escapeXml(elements.background.value);
+      let cells = '';
+
+      for (let row = 0; row < moduleCount; row += 1) {
+        for (let col = 0; col < moduleCount; col += 1) {
+          if (qr.isDark(row, col)) {
+            cells += '<rect x="' + (col + quietZone) + '" y="' + (row + quietZone) + '" width="1" height="1"/>';
+          }
+        }
+      }
+
+      return '<?xml version="1.0" encoding="UTF-8"?>\n' +
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + totalModules + ' ' + totalModules + '" shape-rendering="crispEdges">\n' +
+        '  <rect width="100%" height="100%" fill="' + bg + '"/>\n' +
+        '  <g fill="' + fg + '">' + cells + '</g>\n' +
+        '</svg>\n';
+    }
+
+    function setStatus(message, type) {
+      elements.status.textContent = message;
+      elements.status.className = 'status' + (type ? ' ' + type : '');
+    }
+
+    function makeQr() {
+      try {
+        const text = buildQrText();
+        const qr = makeQrObject(text);
+        currentQr = qr;
+        currentSvg = buildSvg(qr);
+        elements.outputString.value = text;
+        drawQrToCanvas(qr);
+
+        const colorWarning = elements.foreground.value.toLowerCase() === elements.background.value.toLowerCase()
+          ? ' 前景色と背景色が同じため、読み取りできません。色を変更してください。'
+          : '';
+        setStatus('作成しました。情報量が多い場合は、サイズを大きくするか誤り訂正率を下げると読み取りやすくなる場合があります。' + colorWarning, colorWarning ? 'warning' : 'success');
+      } catch (error) {
+        setStatus(error.message, 'warning');
+      }
+    }
+
+    function downloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function timestamp() {
+      const d = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      return d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + '_' + pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds());
+    }
+
+    function downloadPng() {
+      if (!currentQr) makeQr();
+      if (!currentQr) return;
+      elements.canvas.toBlob(blob => {
+        if (!blob) {
+          setStatus('PNGの作成に失敗しました。', 'warning');
+          return;
+        }
+        downloadBlob(blob, 'qr_' + timestamp() + '.png');
+      }, 'image/png');
+    }
+
+    function downloadSvg() {
+      if (!currentQr) makeQr();
+      if (!currentQr) return;
+      const blob = new Blob([currentSvg], { type: 'image/svg+xml;charset=utf-8' });
+      downloadBlob(blob, 'qr_' + timestamp() + '.svg');
+    }
+
+    async function copyOutput() {
+      const text = elements.outputString.value || buildQrText();
+      try {
+        await navigator.clipboard.writeText(text);
+        setStatus('変換文字列をクリップボードにコピーしました。', 'success');
+      } catch (error) {
+        elements.outputString.focus();
+        elements.outputString.select();
+        setStatus('自動コピーできませんでした。表示欄を選択してコピーしてください。', 'warning');
+      }
+    }
+
+    function switchMode() {
+      document.querySelectorAll('.mode-panel').forEach(panel => panel.classList.remove('is-active'));
+      document.getElementById('panel-' + elements.mode.value).classList.add('is-active');
+      currentQr = null;
+      currentSvg = '';
+      setStatus('入力モードを切り替えました。必要事項を入力して作成してください。');
+    }
+
+    elements.mode.addEventListener('change', switchMode);
+    elements.makeButton.addEventListener('click', makeQr);
+    elements.downloadPngButton.addEventListener('click', downloadPng);
+    elements.downloadSvgButton.addEventListener('click', downloadSvg);
+    elements.copyButton.addEventListener('click', copyOutput);
+
+    // 入力や設定を変更した場合、保存前に再生成されるようにします。
+    document.querySelectorAll('input, textarea, select').forEach(input => {
+      input.addEventListener('input', () => {
+        if (input.id !== 'mode') {
+          currentQr = null;
+          currentSvg = '';
+        }
+      });
+    });
+
+    // 初期表示用にサンプルQRコードを生成します。
+    makeQr();
+  </script>
+</body>
+</html>

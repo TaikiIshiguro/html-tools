@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ローカル画像モザイクツール</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --panel: #ffffff;
+    --line: #dbe3ef;
+    --text: #172033;
+    --muted: #657087;
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --danger: #dc2626;
+    --shadow: 0 12px 34px rgba(31, 45, 70, .10);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: sans-serif;
+    color: var(--text);
+    background: var(--bg);
+  }
+  .app { max-width: 1320px; margin: 0 auto; padding: 24px; }
+  header { margin-bottom: 16px; }
+  h1 { margin: 0 0 6px; font-size: clamp(22px, 3vw, 32px); }
+  .lead { margin: 0; color: var(--muted); line-height: 1.7; }
+  .toolbar {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+    padding: 14px; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 16px; box-shadow: var(--shadow); margin-bottom: 16px;
+  }
+  button, .file-label, select {
+    min-height: 42px; border: 1px solid var(--line); border-radius: 10px;
+    background: #fff; color: var(--text); padding: 0 14px; font: inherit;
+  }
+  button, .file-label { cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 7px; font-weight: 650; }
+  button:hover:not(:disabled), .file-label:hover { border-color: #9db5df; background: #f8faff; }
+  button:focus-visible, .file-label:focus-within, input:focus-visible, select:focus-visible { outline: 3px solid rgba(37, 99, 235, .25); outline-offset: 2px; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .primary { color: #fff; background: var(--primary); border-color: var(--primary); }
+  .primary:hover:not(:disabled) { background: var(--primary-dark); border-color: var(--primary-dark); }
+  .danger { color: var(--danger); }
+  input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; }
+  .separator { width: 1px; height: 32px; background: var(--line); margin: 0 2px; }
+  .strength {
+    display: flex; align-items: center; gap: 9px; padding: 0 4px; min-height: 42px;
+  }
+  .strength label { font-weight: 650; white-space: nowrap; }
+  input[type="range"] { width: min(220px, 30vw); accent-color: var(--primary); }
+  output { min-width: 48px; color: var(--primary); font-weight: 750; }
+  .workspace {
+    min-height: 520px; background: #e8edf5; border: 1px solid var(--line); border-radius: 16px;
+    box-shadow: var(--shadow); overflow: hidden; position: relative;
+    display: grid; place-items: center; padding: 20px;
+  }
+  .drop-zone {
+    width: min(640px, 90%); padding: 54px 24px; text-align: center; border: 2px dashed #a6b3c7;
+    border-radius: 18px; background: rgba(255,255,255,.64); color: var(--muted); cursor: pointer;
+  }
+  .drop-zone.dragover { border-color: var(--primary); background: #eff6ff; color: var(--primary); }
+  .drop-zone strong { display: block; color: var(--text); font-size: 19px; margin-bottom: 8px; }
+  .canvas-wrap { display: none; max-width: 100%; max-height: calc(100vh - 260px); overflow: auto; position: relative; line-height: 0; }
+  canvas { display: block; max-width: none; background: #fff; box-shadow: 0 6px 24px rgba(0,0,0,.16); touch-action: none; cursor: crosshair; }
+  .status {
+    display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px;
+    margin-top: 10px; color: var(--muted); font-size: 13px;
+  }
+  .hint { margin-top: 12px; padding: 12px 14px; border-left: 4px solid var(--primary); background: #eef4ff; border-radius: 8px; line-height: 1.65; }
+  kbd { padding: 2px 6px; background: #fff; border: 1px solid #cfd8e6; border-bottom-width: 2px; border-radius: 5px; }
+  @media (max-width: 720px) {
+    .app { padding: 14px; }
+    .toolbar { align-items: stretch; }
+    .separator { display: none; }
+    .strength { width: 100%; }
+    input[type="range"] { flex: 1; width: auto; }
+    .workspace { min-height: 420px; padding: 10px; }
+  }
+</style>
+</head>
+<body>
+<main class="app">
+  <header>
+    <h1>ローカル画像モザイクツール</h1>
+    <p class="lead">画像はブラウザ内だけで処理され、外部には送信されません。</p>
+  </header>
+
+  <section class="toolbar" aria-label="編集ツール">
+    <label for="shapeSelect">範囲：</label>
+    <select id="shapeSelect" aria-label="範囲選択方法">
+      <option value="rect">四角形</option>
+      <option value="ellipse">円・楕円</option>
+      <option value="freehand">フリーハンド</option>
+    </select>
+    <div class="strength">
+      <label for="strength">モザイク強度</label>
+      <input id="strength" type="range" min="3" max="80" value="18" step="1">
+      <output id="strengthValue" for="strength">18 px</output>
+    </div>
+    <button id="applyBtn" class="primary" disabled>選択範囲に適用</button>
+    <button id="applyOutsideBtn" disabled>選択範囲以外に適用</button>
+    <button id="cancelBtn" disabled>選択解除</button>
+    <button id="undoBtn" disabled>元に戻す</button>
+    <button id="resetBtn" class="danger" disabled>初期状態に戻す</button>
+    <div class="separator"></div>
+    <button id="downloadPngBtn" disabled>PNG保存</button>
+    <button id="downloadJpegBtn" disabled>JPEG保存</button>
+  </section>
+
+  <section id="workspace" class="workspace">
+    <div id="dropZone" class="drop-zone" tabindex="0" role="button" aria-label="画像を選択またはドロップ">
+      <strong>画像をここにドロップ</strong>
+      またはクリックして画像を選択してください<br>
+      クリップボードの画像は <kbd>Ctrl</kbd>＋<kbd>V</kbd> で貼り付けできます<br>
+      <small>PNG、JPEG、WebPなど、ブラウザが読み込める画像に対応</small>
+      <input id="fileInput" type="file" accept="image/*">
+    </div>
+    <div id="canvasWrap" class="canvas-wrap"><canvas id="canvas"></canvas></div>
+  </section>
+
+  <div class="status">
+    <span id="imageInfo">画像未選択</span>
+    <span id="statusText" aria-live="polite">画像を読み込んでください。</span>
+  </div>
+  <div class="hint">
+    画像上をドラッグして範囲を選び、モザイク強度を調整して適用先を選びます。画像は <kbd>Ctrl</kbd>＋<kbd>V</kbd> でも読み込めます。<br>
+    ショートカット：<kbd>Ctrl</kbd>＋<kbd>Z</kbd> で元に戻す、<kbd>Esc</kbd> で選択解除。
+  </div>
+</main>
+
+<script>
+(() => {
+  'use strict';
+  const fileInput = document.getElementById('fileInput');
+  const dropZone = document.getElementById('dropZone');
+  const canvasWrap = document.getElementById('canvasWrap');
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  const shapeSelect = document.getElementById('shapeSelect');
+  const strength = document.getElementById('strength');
+  const strengthValue = document.getElementById('strengthValue');
+  const applyBtn = document.getElementById('applyBtn');
+  const applyOutsideBtn = document.getElementById('applyOutsideBtn');
+  const cancelBtn = document.getElementById('cancelBtn');
+  const undoBtn = document.getElementById('undoBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const downloadPngBtn = document.getElementById('downloadPngBtn');
+  const downloadJpegBtn = document.getElementById('downloadJpegBtn');
+  const imageInfo = document.getElementById('imageInfo');
+  const statusText = document.getElementById('statusText');
+
+  let baseCanvas = document.createElement('canvas');
+  let baseCtx = baseCanvas.getContext('2d', { willReadFrequently: true });
+  let originalImageData = null;
+  let history = [];
+  let selection = null;
+  let drawing = false;
+  let start = null;
+  let fileBaseName = 'mosaic-image';
+
+  const setStatus = text => statusText.textContent = text;
+
+  function updateButtons() {
+    const loaded = canvas.width > 0 && canvas.height > 0 && originalImageData;
+    const hasSelection = !!selection && isValidSelection(selection);
+    applyBtn.disabled = !loaded || !hasSelection;
+    applyOutsideBtn.disabled = !loaded || !hasSelection;
+    cancelBtn.disabled = !hasSelection;
+    undoBtn.disabled = history.length === 0;
+    resetBtn.disabled = !loaded;
+    downloadPngBtn.disabled = !loaded;
+    downloadJpegBtn.disabled = !loaded;
+  }
+
+  function loadFile(file, displayName = '') {
+    if (!file || !file.type.startsWith('image/')) {
+      setStatus('画像ファイルを選択してください。');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        canvas.width = baseCanvas.width = img.naturalWidth;
+        canvas.height = baseCanvas.height = img.naturalHeight;
+        baseCtx.clearRect(0, 0, img.naturalWidth, img.naturalHeight);
+        baseCtx.drawImage(img, 0, 0);
+        originalImageData = baseCtx.getImageData(0, 0, baseCanvas.width, baseCanvas.height);
+        history = [];
+        selection = null;
+        const sourceName = displayName || file.name || 'clipboard-image';
+        fileBaseName = sourceName.replace(/\.[^.]+$/, '') + '-mosaic';
+        fitCanvasToWorkspace();
+        render();
+        dropZone.style.display = 'none';
+        canvasWrap.style.display = 'block';
+        imageInfo.textContent = `${displayName || file.name || 'クリップボード画像'} ｜ ${img.naturalWidth} × ${img.naturalHeight}px`;
+        setStatus('画像上をドラッグして範囲を選択してください。');
+        updateButtons();
+      };
+      img.onerror = () => setStatus('画像を読み込めませんでした。別の形式をお試しください。');
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function fitCanvasToWorkspace() {
+    const maxW = Math.max(280, document.getElementById('workspace').clientWidth - 42);
+    const maxH = Math.max(320, window.innerHeight - 300);
+    const scale = Math.min(1, maxW / canvas.width, maxH / canvas.height);
+    canvas.style.width = `${Math.round(canvas.width * scale)}px`;
+    canvas.style.height = `${Math.round(canvas.height * scale)}px`;
+  }
+
+  function pointFromEvent(e) {
+    const r = canvas.getBoundingClientRect();
+    return {
+      x: Math.max(0, Math.min(canvas.width, (e.clientX - r.left) * canvas.width / r.width)),
+      y: Math.max(0, Math.min(canvas.height, (e.clientY - r.top) * canvas.height / r.height))
+    };
+  }
+
+  function render() {
+    if (!originalImageData) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(baseCanvas, 0, 0);
+    if (selection) drawSelectionOverlay(selection);
+  }
+
+  function drawSelectionOverlay(sel) {
+    ctx.save();
+    ctx.lineWidth = Math.max(2, Math.min(canvas.width, canvas.height) / 400);
+    ctx.strokeStyle = '#00a8ff';
+    ctx.fillStyle = 'rgba(0, 168, 255, 0.18)';
+    ctx.setLineDash([10, 7]);
+    ctx.beginPath();
+    if (sel.type === 'rect') {
+      ctx.rect(sel.x, sel.y, sel.w, sel.h);
+    } else if (sel.type === 'ellipse') {
+      ctx.ellipse(sel.x + sel.w / 2, sel.y + sel.h / 2, Math.abs(sel.w / 2), Math.abs(sel.h / 2), 0, 0, Math.PI * 2);
+    } else if (sel.type === 'freehand' && sel.points.length) {
+      ctx.moveTo(sel.points[0].x, sel.points[0].y);
+      sel.points.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
+      if (!drawing && sel.points.length > 2) ctx.closePath();
+    }
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function isValidSelection(sel) {
+    if (!sel) return false;
+    if (sel.type === 'freehand') return sel.points.length >= 3 && polygonArea(sel.points) > 9;
+    return Math.abs(sel.w) >= 2 && Math.abs(sel.h) >= 2;
+  }
+
+  function polygonArea(points) {
+    let a = 0;
+    for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+      a += points[j].x * points[i].y - points[i].x * points[j].y;
+    }
+    return Math.abs(a / 2);
+  }
+
+  canvas.addEventListener('pointerdown', e => {
+    if (!originalImageData) return;
+    e.preventDefault();
+    canvas.setPointerCapture(e.pointerId);
+    drawing = true;
+    start = pointFromEvent(e);
+    const type = shapeSelect.value;
+    selection = type === 'freehand'
+      ? { type, points: [start] }
+      : { type, x: start.x, y: start.y, w: 0, h: 0 };
+    render();
+    updateButtons();
+  });
+
+  canvas.addEventListener('pointermove', e => {
+    if (!drawing || !selection) return;
+    e.preventDefault();
+    const p = pointFromEvent(e);
+    if (selection.type === 'freehand') {
+      const last = selection.points[selection.points.length - 1];
+      if (Math.hypot(p.x - last.x, p.y - last.y) >= 2) selection.points.push(p);
+    } else {
+      selection.x = Math.min(start.x, p.x);
+      selection.y = Math.min(start.y, p.y);
+      selection.w = Math.abs(p.x - start.x);
+      selection.h = Math.abs(p.y - start.y);
+    }
+    render();
+  });
+
+  function endDrawing(e) {
+    if (!drawing) return;
+    drawing = false;
+    try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
+    if (!isValidSelection(selection)) {
+      selection = null;
+      setStatus('選択範囲が小さすぎます。もう一度選択してください。');
+    } else {
+      setStatus('範囲を選択しました。強度を調整して適用してください。');
+    }
+    render();
+    updateButtons();
+  }
+  canvas.addEventListener('pointerup', endDrawing);
+  canvas.addEventListener('pointercancel', endDrawing);
+
+  // 選択形状を現在の描画パスとして作成する。
+  // このパスでクリッピングすることで、選択範囲外の画素は一切変更しない。
+  function createSelectionPath(targetCtx, sel) {
+    targetCtx.beginPath();
+    if (sel.type === 'rect') {
+      targetCtx.rect(sel.x, sel.y, sel.w, sel.h);
+    } else if (sel.type === 'ellipse') {
+      targetCtx.ellipse(
+        sel.x + sel.w / 2,
+        sel.y + sel.h / 2,
+        Math.abs(sel.w / 2),
+        Math.abs(sel.h / 2),
+        0, 0, Math.PI * 2
+      );
+    } else {
+      targetCtx.moveTo(sel.points[0].x, sel.points[0].y);
+      sel.points.slice(1).forEach(point => targetCtx.lineTo(point.x, point.y));
+      targetCtx.closePath();
+    }
+  }
+
+  function selectionBounds(sel) {
+    if (sel.type !== 'freehand') {
+      return { x: sel.x, y: sel.y, w: sel.w, h: sel.h };
+    }
+    const xs = sel.points.map(point => point.x);
+    const ys = sel.points.map(point => point.y);
+    const x1 = Math.min(...xs);
+    const y1 = Math.min(...ys);
+    const x2 = Math.max(...xs);
+    const y2 = Math.max(...ys);
+    return { x: x1, y: y1, w: x2 - x1, h: y2 - y1 };
+  }
+
+  // 指定矩形のモザイク画像を生成する。
+  function createMosaicCanvas(x, y, width, height, blockSize) {
+    const sourceCanvas = document.createElement('canvas');
+    sourceCanvas.width = width;
+    sourceCanvas.height = height;
+    const sourceCtx = sourceCanvas.getContext('2d');
+    sourceCtx.drawImage(baseCanvas, x, y, width, height, 0, 0, width, height);
+
+    const smallCanvas = document.createElement('canvas');
+    smallCanvas.width = Math.max(1, Math.ceil(width / blockSize));
+    smallCanvas.height = Math.max(1, Math.ceil(height / blockSize));
+    const smallCtx = smallCanvas.getContext('2d');
+    smallCtx.imageSmoothingEnabled = true;
+    smallCtx.drawImage(sourceCanvas, 0, 0, smallCanvas.width, smallCanvas.height);
+
+    const mosaicCanvas = document.createElement('canvas');
+    mosaicCanvas.width = width;
+    mosaicCanvas.height = height;
+    const mosaicCtx = mosaicCanvas.getContext('2d');
+    mosaicCtx.imageSmoothingEnabled = false;
+    mosaicCtx.drawImage(
+      smallCanvas,
+      0, 0, smallCanvas.width, smallCanvas.height,
+      0, 0, width, height
+    );
+    return mosaicCanvas;
+  }
+
+  // 選択範囲の内側、または外側だけにモザイクを適用する。
+  function applyMosaic(outside = false) {
+    if (!isValidSelection(selection)) return;
+
+    history.push(baseCtx.getImageData(0, 0, baseCanvas.width, baseCanvas.height));
+    if (history.length > 20) history.shift();
+
+    const blockSize = Number(strength.value);
+
+    if (outside) {
+      // 画像全体のモザイクを作り、偶奇規則で選択部分をくり抜いて外側だけ描画する。
+      const mosaicCanvas = createMosaicCanvas(
+        0, 0, baseCanvas.width, baseCanvas.height, blockSize
+      );
+      baseCtx.save();
+      baseCtx.beginPath();
+      baseCtx.rect(0, 0, baseCanvas.width, baseCanvas.height);
+      if (selection.type === 'rect') {
+        baseCtx.rect(selection.x, selection.y, selection.w, selection.h);
+      } else if (selection.type === 'ellipse') {
+        baseCtx.ellipse(
+          selection.x + selection.w / 2,
+          selection.y + selection.h / 2,
+          Math.abs(selection.w / 2),
+          Math.abs(selection.h / 2),
+          0, 0, Math.PI * 2
+        );
+      } else {
+        baseCtx.moveTo(selection.points[0].x, selection.points[0].y);
+        selection.points.slice(1).forEach(point => baseCtx.lineTo(point.x, point.y));
+        baseCtx.closePath();
+      }
+      baseCtx.clip('evenodd');
+      baseCtx.drawImage(mosaicCanvas, 0, 0);
+      baseCtx.restore();
+    } else {
+      // 選択範囲を含む最小矩形だけ処理し、選択形状の内側へ上書きする。
+      const bounds = selectionBounds(selection);
+      const x = Math.max(0, Math.floor(bounds.x));
+      const y = Math.max(0, Math.floor(bounds.y));
+      const right = Math.min(baseCanvas.width, Math.ceil(bounds.x + bounds.w));
+      const bottom = Math.min(baseCanvas.height, Math.ceil(bounds.y + bounds.h));
+      const width = Math.max(1, right - x);
+      const height = Math.max(1, bottom - y);
+      const mosaicCanvas = createMosaicCanvas(x, y, width, height, blockSize);
+
+      baseCtx.save();
+      createSelectionPath(baseCtx, selection);
+      baseCtx.clip();
+      baseCtx.drawImage(mosaicCanvas, x, y);
+      baseCtx.restore();
+    }
+
+    selection = null;
+    render();
+    setStatus(outside
+      ? '選択範囲を除く部分にモザイクを適用しました。'
+      : '選択範囲の内側だけにモザイクを適用しました。');
+    updateButtons();
+  }
+
+  function undo() {
+    const prev = history.pop();
+    if (!prev) return;
+    baseCtx.putImageData(prev, 0, 0);
+    selection = null;
+    render();
+    setStatus('直前の編集を元に戻しました。');
+    updateButtons();
+  }
+
+  function reset() {
+    if (!originalImageData) return;
+    history = [];
+    baseCtx.putImageData(originalImageData, 0, 0);
+    selection = null;
+    render();
+    setStatus('読み込み直後の状態に戻しました。');
+    updateButtons();
+  }
+
+  function download(type) {
+    if (!originalImageData) return;
+    const out = document.createElement('canvas');
+    out.width = baseCanvas.width; out.height = baseCanvas.height;
+    const octx = out.getContext('2d');
+    if (type === 'image/jpeg') {
+      octx.fillStyle = '#fff'; octx.fillRect(0, 0, out.width, out.height);
+    }
+    octx.drawImage(baseCanvas, 0, 0);
+    out.toBlob(blob => {
+      if (!blob) return;
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${fileBaseName}.${type === 'image/png' ? 'png' : 'jpg'}`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      setStatus(`${type === 'image/png' ? 'PNG' : 'JPEG'}形式で保存しました。`);
+    }, type, type === 'image/jpeg' ? 0.92 : undefined);
+  }
+
+  // クリップボードに含まれる最初の画像を読み込む。
+  document.addEventListener('paste', event => {
+    const items = Array.from(event.clipboardData?.items || []);
+    const imageItem = items.find(item => item.type.startsWith('image/'));
+    if (!imageItem) {
+      setStatus('クリップボードに画像が見つかりませんでした。');
+      return;
+    }
+    const imageFile = imageItem.getAsFile();
+    if (imageFile) {
+      event.preventDefault();
+      loadFile(imageFile, 'クリップボード画像');
+    }
+  });
+
+  fileInput.addEventListener('change', e => loadFile(e.target.files[0]));
+  dropZone.addEventListener('click', () => fileInput.click());
+  dropZone.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') fileInput.click(); });
+  ['dragenter', 'dragover'].forEach(name => dropZone.addEventListener(name, e => { e.preventDefault(); dropZone.classList.add('dragover'); }));
+  ['dragleave', 'drop'].forEach(name => dropZone.addEventListener(name, e => { e.preventDefault(); dropZone.classList.remove('dragover'); }));
+  dropZone.addEventListener('drop', e => loadFile(e.dataTransfer.files[0]));
+  strength.addEventListener('input', () => strengthValue.value = `${strength.value} px`);
+  shapeSelect.addEventListener('change', () => { selection = null; render(); updateButtons(); setStatus('選択方法を変更しました。画像上をドラッグしてください。'); });
+  applyBtn.addEventListener('click', () => applyMosaic(false));
+  applyOutsideBtn.addEventListener('click', () => applyMosaic(true));
+  cancelBtn.addEventListener('click', () => { selection = null; render(); updateButtons(); setStatus('選択を解除しました。'); });
+  undoBtn.addEventListener('click', undo);
+  resetBtn.addEventListener('click', reset);
+  downloadPngBtn.addEventListener('click', () => download('image/png'));
+  downloadJpegBtn.addEventListener('click', () => download('image/jpeg'));
+  window.addEventListener('resize', () => { if (originalImageData) fitCanvasToWorkspace(); });
+  window.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); }
+    if (e.key === 'Escape' && selection) { selection = null; render(); updateButtons(); setStatus('選択を解除しました。'); }
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ローカル動画・音声プレイヤー</title>
+<style>
+:root{color-scheme:light;--blue:#003ee5;--blue-dark:#0017c1;--focus:#ffbe2e;--ink:#1a1a1a;--muted:#626264;--line:#949497}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:sans-serif;background:#f7f7f8;color:var(--ink)}
+button,input{font:inherit}button:focus-visible,input:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.app{height:100%;display:grid;grid-template-rows:auto minmax(0,1fr);gap:8px;padding:10px 14px}.heading{display:flex;align-items:center;min-height:30px}.heading h1{margin:0;font-size:1.15rem;line-height:1.35}
+.player-shell{position:relative;min-height:0;display:grid;grid-template-rows:minmax(0,1fr) auto;overflow:hidden;border-radius:10px;background:#111;box-shadow:0 2px 10px #0003}
+.media-stage{position:relative;min-height:0;display:grid;place-items:center;overflow:hidden;background:#000}.media{display:none;width:100%;height:100%;object-fit:contain;background:#000}.media.audio-mode{width:min(720px,88%);height:100px;border-radius:10px;background:linear-gradient(135deg,#0017c1,#003ee5)}
+.drop-zone{width:min(680px,88%);padding:32px 20px;text-align:center;color:#fff;border:2px dashed #b8c8ff;border-radius:10px;background:#171717}.drop-zone.dragover{border-color:#fff;background:#25366e}.drop-zone strong{display:block;margin-bottom:7px}.drop-zone p{margin:5px 0 14px;color:#ddd;font-size:.9rem}.file-button{display:inline-flex;align-items:center;min-height:40px;padding:7px 16px;border:2px solid var(--blue);border-radius:7px;background:var(--blue);color:#fff;font-weight:700;cursor:pointer}#fileInput{position:absolute;width:1px;height:1px;clip:rect(0,0,0,0);overflow:hidden}
+.control-panel{display:none;padding:8px 10px 9px;background:#191919f7;color:#fff}.control-panel.visible{display:block}.timeline-row{display:grid;grid-template-columns:72px minmax(100px,1fr) 72px;gap:8px;align-items:center;margin-bottom:7px}.time{font-size:.78rem;font-variant-numeric:tabular-nums}.time:last-child{text-align:right}.timeline{position:relative;height:24px;display:flex;align-items:center}#seek{width:100%;margin:0;accent-color:#648fff;cursor:pointer}.flag-layer{position:absolute;z-index:2;left:8px;right:8px;top:0;height:17px;pointer-events:none}.flag-marker{position:absolute;top:-2px;transform:translateX(-50%);width:18px;height:20px;padding:0;border:0;background:transparent;color:#ffcf33;font-size:17px;line-height:20px;filter:drop-shadow(0 1px 1px #000);cursor:pointer;pointer-events:auto}.flag-marker:hover{transform:translateX(-50%) scale(1.18)}
+.controls{display:flex;gap:6px;align-items:end;min-width:0;white-space:nowrap}.group{display:flex;gap:5px;align-items:end;padding-right:6px;border-right:1px solid #555}.group:last-of-type{border-right:0}.btn{height:36px;padding:5px 9px;border:1px solid #777;border-radius:6px;background:#303033;color:#fff;font-size:.78rem;font-weight:700;cursor:pointer}.btn:hover{background:#47474a}.btn.primary{width:74px;background:var(--blue);border-color:#7398ff}.btn[aria-pressed=true]{background:#fff;color:var(--blue-dark)}.btn:disabled{opacity:.45;cursor:not-allowed}.field{display:grid;gap:2px;font-size:.68rem}.field input{width:76px;height:36px;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:#fff;color:#111}.field.speed input{width:64px}.field.fps input{width:66px}.filename{margin-left:auto;min-width:80px;overflow:hidden;text-overflow:ellipsis;color:#ddd;font-size:.75rem}
+.player-shell:fullscreen,.player-shell:-webkit-full-screen{width:100%;height:100%;border-radius:0;grid-template-rows:minmax(0,1fr) auto}.player-shell:fullscreen .control-panel,.player-shell:-webkit-full-screen .control-panel{position:absolute;z-index:10;left:0;right:0;bottom:0}.player-shell.ui-hidden:fullscreen{cursor:none}.player-shell.ui-hidden:fullscreen .control-panel{opacity:0;transform:translateY(100%);pointer-events:none}.control-panel{transition:opacity .18s,transform .18s}
+@media(max-width:980px){.btn{padding:5px 7px;font-size:.72rem}.group{gap:3px;padding-right:3px}.field.fps{display:none}.filename{display:none}}
+@media(max-width:760px){.app{padding:6px}.heading{display:none}.controls{overflow-x:auto;padding-bottom:2px}.timeline-row{grid-template-columns:60px minmax(100px,1fr) 60px}.btn{height:34px}.field input{height:34px}}
+</style>
+</head>
+<body>
+<main class="app">
+<header class="heading"><h1>ローカル動画・音声プレイヤー</h1></header>
+<section id="playerShell" class="player-shell" aria-label="メディアプレイヤー">
+  <div class="media-stage">
+    <div id="dropZone" class="drop-zone"><strong>動画・音声ファイルをドロップ</strong><p>または、ダイアログから選択してください。</p><label class="file-button" for="fileInput">ファイルを選択</label><input id="fileInput" type="file" accept="video/*,audio/*"></div>
+    <video id="media" class="media" preload="metadata" playsinline></video>
+  </div>
+  <div id="controlPanel" class="control-panel">
+    <div class="timeline-row">
+      <span id="currentTime" class="time">00:00.000</span>
+      <div class="timeline"><input id="seek" type="range" min="0" max="0" step="0.001" value="0" aria-label="再生位置"><div id="flagLayer" class="flag-layer" aria-label="フラグ"></div></div>
+      <span id="duration" class="time">00:00.000</span>
+    </div>
+    <div class="controls">
+      <div class="group">
+        <button id="playPause" class="btn primary" type="button" title="再生／一時停止（Space）">再生</button>
+        <button id="back10" class="btn" type="button" title="10秒巻き戻し（←）">−10秒</button>
+        <button id="forward30" class="btn" type="button" title="30秒進む（→）">＋30秒</button>
+        <button id="prevFrame" class="btn" type="button" title="1フレーム戻る">前フレーム</button>
+        <button id="nextFrame" class="btn" type="button" title="1フレーム進む">次フレーム</button>
+      </div>
+      <div class="group">
+        <label class="field" title="指定した秒へ移動">移動先（秒）<input id="jumpSeconds" type="number" min="0" step="0.001" inputmode="decimal" placeholder="12.5"></label>
+        <button id="jumpButton" class="btn" type="button" title="指定秒へ移動">移動</button>
+        <button id="addFlag" class="btn" type="button" title="現在位置にフラグを追加。旗を右クリックすると削除">旗を追加</button>
+      </div>
+      <div class="group">
+        <label class="field speed" title="再生速度（↑：+0.2、↓：−0.2）">速度<input id="speed" list="speedOptions" type="number" min="0.05" max="16" step="0.05" value="1"><datalist id="speedOptions"><option value="0.25"><option value="0.5"><option value="1"><option value="1.5"><option value="2"><option value="3"></datalist></label>
+        <label class="field fps" title="フレーム移動に用いるフレームレート">fps<input id="fps" type="number" min="1" max="240" step="0.001" value="30"></label>
+        <button id="repeat" class="btn" type="button" aria-pressed="false" title="リピート再生">リピート</button>
+      </div>
+      <div class="group">
+        <button id="capture" class="btn" type="button" title="現在フレームをPNG保存（Ctrl+S）">画像保存</button>
+        <button id="fullscreen" class="btn" type="button" title="フルスクリーン／解除（F）">全画面</button>
+        <button id="openAnother" class="btn" type="button" title="現在のファイルを閉じる">別ファイル</button>
+      </div>
+      <div id="filename" class="filename"></div>
+    </div>
+  </div>
+</section>
+</main>
+<script>
+(()=>{'use strict';
+const $=id=>document.getElementById(id),shell=$('playerShell'),media=$('media'),dropZone=$('dropZone'),fileInput=$('fileInput'),panel=$('controlPanel'),seek=$('seek'),speed=$('speed'),fps=$('fps'),flagLayer=$('flagLayer');
+let objectUrl=null,flags=[],isAudio=false,seeking=false,hideTimer=null;
+const formatTime=v=>{v=Number.isFinite(v)&&v>0?v:0;const h=Math.floor(v/3600),m=Math.floor(v%3600/60),s=Math.floor(v%60),ms=Math.floor(v%1*1000),base=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${String(ms).padStart(3,'0')}`;return h?`${String(h).padStart(2,'0')}:${base}`:base};
+const clamp=v=>Math.min(Math.max(Number(v)||0,0),Number.isFinite(media.duration)?media.duration:0);
+function updateTime(){if(!seeking)seek.value=media.currentTime||0;$('currentTime').textContent=formatTime(media.currentTime)}
+function renderFlags(){flagLayer.replaceChildren();if(!Number.isFinite(media.duration)||media.duration<=0)return;flags.forEach((flag,i)=>{const b=document.createElement('button');b.type='button';b.className='flag-marker';b.textContent='⚑';b.style.left=`${flag.time/media.duration*100}%`;b.title=`${formatTime(flag.time)}へ移動／右クリックで削除`;b.setAttribute('aria-label',`${formatTime(flag.time)}のフラグ`);b.addEventListener('click',()=>{media.currentTime=clamp(flag.time);updateTime()});b.addEventListener('contextmenu',e=>{e.preventDefault();flags.splice(i,1);renderFlags()});flagLayer.appendChild(b)})}
+function loadFile(file){if(!file)return;if(!file.type.startsWith('video/')&&!file.type.startsWith('audio/')){alert('動画または音声ファイルを選択してください。');return}media.pause();if(objectUrl)URL.revokeObjectURL(objectUrl);objectUrl=URL.createObjectURL(file);flags=[];isAudio=file.type.startsWith('audio/');media.src=objectUrl;media.style.display='block';media.classList.toggle('audio-mode',isAudio);$('capture').disabled=isAudio;$('prevFrame').disabled=isAudio;$('nextFrame').disabled=isAudio;dropZone.style.display='none';panel.classList.add('visible');$('filename').textContent=file.name;media.load();renderFlags()}
+function reset(){media.pause();if(objectUrl)URL.revokeObjectURL(objectUrl);objectUrl=null;media.removeAttribute('src');media.load();media.style.display='none';media.classList.remove('audio-mode');dropZone.style.display='';panel.classList.remove('visible');flags=[];renderFlags();fileInput.value=''}
+function moveBy(v){media.currentTime=clamp(media.currentTime+v);updateTime()}
+function stepFrame(dir){const rate=Number(fps.value);if(!Number.isFinite(rate)||rate<=0){alert('フレームレートは1以上で指定してください。');return}media.pause();media.currentTime=clamp(media.currentTime+dir/rate);updateTime()}
+function saveFrame(){if(isAudio||!media.videoWidth){alert('このファイルから画像を保存できません。');return}const c=document.createElement('canvas');c.width=media.videoWidth;c.height=media.videoHeight;c.getContext('2d').drawImage(media,0,0);c.toBlob(blob=>{if(!blob)return;const u=URL.createObjectURL(blob),a=document.createElement('a'),base=($('filename').textContent||'frame').replace(/\.[^.]+$/,'').replace(/[\\/:*?"<>|]/g,'_');a.href=u;a.download=`${base}_${media.currentTime.toFixed(3)}s.png`;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)},'image/png')}
+async function toggleFullscreen(){try{const active=document.fullscreenElement||document.webkitFullscreenElement;if(active){if(document.exitFullscreen)await document.exitFullscreen();else if(document.webkitExitFullscreen)document.webkitExitFullscreen()}else{if(shell.requestFullscreen)await shell.requestFullscreen();else if(shell.webkitRequestFullscreen)shell.webkitRequestFullscreen();else alert('このブラウザはフルスクリーン表示に対応していません。')}}catch(e){alert('フルスクリーン表示を切り替えられませんでした。')}}
+function showControls(force=false){if(!(document.fullscreenElement||document.webkitFullscreenElement))return;shell.classList.remove('ui-hidden');clearTimeout(hideTimer);if(!force&&!media.paused)hideTimer=setTimeout(()=>shell.classList.add('ui-hidden'),2200)}
+fileInput.addEventListener('change',()=>loadFile(fileInput.files[0]));['dragenter','dragover'].forEach(t=>dropZone.addEventListener(t,e=>{e.preventDefault();dropZone.classList.add('dragover')}));['dragleave','drop'].forEach(t=>dropZone.addEventListener(t,e=>{e.preventDefault();dropZone.classList.remove('dragover')}));dropZone.addEventListener('drop',e=>loadFile(e.dataTransfer.files[0]));
+media.addEventListener('loadedmetadata',()=>{seek.max=media.duration||0;$('duration').textContent=formatTime(media.duration);updateTime();renderFlags()});media.addEventListener('timeupdate',updateTime);media.addEventListener('play',()=>{$('playPause').textContent='一時停止';showControls()});media.addEventListener('pause',()=>{$('playPause').textContent='再生';showControls(true)});media.addEventListener('ended',()=>{$('playPause').textContent='再生'});media.addEventListener('error',()=>alert('このブラウザで再生できない形式、または破損したファイルです。'));media.addEventListener('click',()=>$('playPause').click());
+$('playPause').addEventListener('click',async()=>{if(media.paused){try{await media.play()}catch(e){alert('再生を開始できませんでした。')}}else media.pause()});$('back10').addEventListener('click',()=>moveBy(-10));$('forward30').addEventListener('click',()=>moveBy(30));$('prevFrame').addEventListener('click',()=>stepFrame(-1));$('nextFrame').addEventListener('click',()=>stepFrame(1));
+seek.addEventListener('input',()=>{seeking=true;$('currentTime').textContent=formatTime(Number(seek.value))});seek.addEventListener('change',()=>{media.currentTime=clamp(seek.value);seeking=false;updateTime()});$('jumpButton').addEventListener('click',()=>{const v=Number($('jumpSeconds').value);if(!Number.isFinite(v)||v<0){alert('移動先は0以上の秒数で指定してください。');return}media.currentTime=clamp(v);updateTime()});
+$('addFlag').addEventListener('click',()=>{const t=media.currentTime;if(!flags.some(f=>Math.abs(f.time-t)<.001)){flags.push({time:t});flags.sort((a,b)=>a.time-b.time);renderFlags()}});speed.addEventListener('change',()=>{const v=Number(speed.value);if(!Number.isFinite(v)||v<.05||v>16){speed.value=String(media.playbackRate||1);alert('再生速度は0.05～16倍で指定してください。');return}media.playbackRate=v});$('repeat').addEventListener('click',()=>{media.loop=!media.loop;$('repeat').setAttribute('aria-pressed',String(media.loop))});$('capture').addEventListener('click',saveFrame);$('fullscreen').addEventListener('click',toggleFullscreen);$('openAnother').addEventListener('click',reset);
+['fullscreenchange','webkitfullscreenchange'].forEach(t=>document.addEventListener(t,()=>{const active=document.fullscreenElement||document.webkitFullscreenElement;$('fullscreen').textContent=active?'全画面解除':'全画面';shell.classList.remove('ui-hidden');if(active)showControls()}));shell.addEventListener('mousemove',e=>{if(!(document.fullscreenElement||document.webkitFullscreenElement))return;const near=innerHeight-e.clientY<150;showControls(near)});shell.addEventListener('touchstart',()=>showControls(true),{passive:true});
+document.addEventListener('keydown',e=>{if(!objectUrl)return;const editing=['INPUT','SELECT','TEXTAREA'].includes(document.activeElement?.tagName);if((e.ctrlKey||e.metaKey)&&e.code==='KeyS'){e.preventDefault();if(!isAudio)saveFrame();return}if(editing)return;if(e.code==='Space'){e.preventDefault();$('playPause').click()}else if(e.code==='ArrowLeft'){e.preventDefault();moveBy(-10)}else if(e.code==='ArrowRight'){e.preventDefault();moveBy(30)}else if(e.code==='ArrowUp'){e.preventDefault();const v=Math.min(16,Math.round((media.playbackRate+.2)*10)/10);media.playbackRate=v;speed.value=String(v)}else if(e.code==='ArrowDown'){e.preventDefault();const v=Math.max(.2,Math.round((media.playbackRate-.2)*10)/10);media.playbackRate=v;speed.value=String(v)}else if(e.code==='KeyF'&&!e.ctrlKey&&!e.metaKey&&!e.altKey){e.preventDefault();toggleFullscreen()}});
+})();
+</script>
+</body>
+</html>

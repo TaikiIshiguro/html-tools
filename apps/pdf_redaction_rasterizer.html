@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>PDF黒塗り・ラスタライズツール</title>
+  <!-- 外部通信はライブラリ取得時のみ。PDFデータはローカルで処理します。 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <style>
+    :root{--blue:#0017c1;--blue-dark:#000082;--blue-pale:#e8f1fe;--ink:#1a1a1a;--sub:#626264;--line:#d8d8db;--bg:#f7f7f8;--white:#fff;--danger:#b40000;--focus:#ffbf47;--shadow:0 2px 10px rgba(0,0,0,.12)}
+    *{box-sizing:border-box} html,body{margin:0;min-height:100%;font-family:sans-serif;color:var(--ink);background:var(--bg)}
+    button,input,select{font:inherit} button{min-height:44px;border-radius:6px;padding:.55rem .9rem;border:2px solid var(--blue);background:var(--white);color:var(--blue);font-weight:700;cursor:pointer}
+    button:hover{background:var(--blue-pale)} button:focus-visible,input:focus-visible,select:focus-visible{outline:4px solid var(--focus);outline-offset:2px}
+    button.primary{background:var(--blue);color:#fff} button.primary:hover{background:var(--blue-dark)} button.ghost{border-color:transparent;text-decoration:underline}
+    button:disabled{cursor:not-allowed;opacity:.45}.app-header{background:#fff;border-bottom:1px solid var(--line);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+    .app-header h1{font-size:1.35rem;margin:0}.privacy{font-size:.86rem;color:#174d2d;background:#e8f6ef;border-radius:999px;padding:5px 10px;font-weight:700}
+    main{padding:20px 24px 100px;max-width:1500px;margin:auto}.dropzone{border:2px dashed #777;border-radius:10px;background:#fff;padding:24px;text-align:center}.dropzone.drag{border-color:var(--blue);background:var(--blue-pale)}
+    .dropzone p{margin:.3rem 0 1rem}.file-meta{margin-top:10px;color:var(--sub);overflow-wrap:anywhere}.workspace{display:none;margin-top:18px}.workspace.active{display:block}
+    .toolbar,.pagebar{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:12px}
+    .tool[aria-pressed="true"]{background:var(--blue);color:#fff}.divider{width:1px;height:32px;background:var(--line);margin:0 4px}.spacer{flex:1}.pagebar label{font-weight:700}.pagebar input{width:76px;min-height:42px;border:1px solid #777;border-radius:5px;padding:6px}.page-count{min-width:76px}
+    .viewer-shell{background:#4b4b4f;border-radius:8px;padding:18px;min-height:420px;overflow:auto;display:flex;justify-content:center;align-items:flex-start}
+    .canvas-wrap{position:relative;background:#fff;box-shadow:var(--shadow);line-height:0;max-width:100%}.canvas-wrap canvas{display:block;max-width:100%;height:auto}.overlay{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
+    .status{margin:0 0 10px;min-height:1.5em;font-weight:700}.status.error{color:var(--danger)}
+    .settings-button{position:fixed;left:24px;bottom:24px;width:56px;height:56px;border-radius:50%;padding:0;font-size:25px;background:var(--blue);color:#fff;box-shadow:var(--shadow);z-index:10}
+    dialog{border:0;border-radius:10px;padding:0;box-shadow:0 10px 40px rgba(0,0,0,.32);width:min(560px,calc(100% - 32px))}dialog::backdrop{background:rgba(0,0,0,.52)}
+    .dialog-head{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--line)}.dialog-head h2{margin:0;font-size:1.2rem}.dialog-body{padding:20px}.field{margin-bottom:18px}.field label{display:block;font-weight:700;margin-bottom:6px}.field input,.field select{width:100%;min-height:44px;border:1px solid #777;border-radius:5px;padding:8px}.field small{display:block;color:var(--sub);margin-top:5px}.dialog-actions{padding:12px 20px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px}
+    .progress{width:min(560px,100%);height:12px;margin-top:8px}.sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    @media(max-width:700px){.app-header{padding:12px 14px;align-items:flex-start;flex-direction:column}main{padding:14px 12px 90px}.viewer-shell{padding:8px}.toolbar button,.pagebar button{padding:.45rem .65rem}.privacy{border-radius:6px}.settings-button{left:16px;bottom:16px}}
+  </style>
+</head>
+<body>
+<header class="app-header"><h1>PDF黒塗り・ラスタライズツール</h1><div class="privacy">端末内で処理・PDFは外部送信しません</div></header>
+<main>
+  <section id="dropzone" class="dropzone" aria-labelledby="dropTitle">
+    <h2 id="dropTitle">PDFを読み込む</h2><p>ここにPDFをドラッグ＆ドロップするか、ファイル選択ダイアログを使用してください。</p>
+    <button id="selectFile" type="button" class="primary">PDFを選択</button><input id="fileInput" class="sr-only" type="file" accept="application/pdf,.pdf">
+    <div id="fileMeta" class="file-meta" aria-live="polite"></div>
+  </section>
+
+  <section id="workspace" class="workspace" aria-label="黒塗り範囲の編集">
+    <div id="status" class="status" aria-live="polite"></div><progress id="progress" class="progress" max="100" value="0" hidden></progress>
+    <div class="toolbar" role="toolbar" aria-label="編集と出力">
+      <button class="tool" data-tool="rect" type="button" aria-pressed="true">□ 長方形</button>
+      <button class="tool" data-tool="ellipse" type="button" aria-pressed="false">○ 丸型</button>
+      <button class="tool" data-tool="freehand" type="button" aria-pressed="false">✎ フリーハンド</button>
+      <span class="divider" aria-hidden="true"></span>
+      <button id="undo" type="button">元に戻す</button><button id="clearPage" type="button">このページを全消去</button>
+      <span class="spacer"></span>
+      <button id="openAnother" type="button">別のファイルを開く</button>
+      <button id="downloadDraft" type="button" class="primary">起案用PDF</button><button id="downloadPublic" type="button" class="primary">公開用PDF</button>
+    </div>
+    <nav class="pagebar" aria-label="ページ移動">
+      <button id="firstPage" type="button" aria-label="先頭ページ">|◀</button><button id="prevPage" type="button" aria-label="前のページ">◀</button>
+      <label for="pageNumber">ページ</label><input id="pageNumber" type="number" min="1" value="1"><span id="pageCount" class="page-count">/ 0</span>
+      <button id="nextPage" type="button" aria-label="次のページ">▶</button><button id="lastPage" type="button" aria-label="末尾ページ">▶|</button>
+    </nav>
+    <div class="viewer-shell"><div id="canvasWrap" class="canvas-wrap"><canvas id="pdfCanvas"></canvas><canvas id="overlay" class="overlay" aria-label="黒塗り範囲を描画する領域"></canvas></div></div>
+  </section>
+</main>
+<button id="openSettings" class="settings-button" type="button" aria-label="設定を開く" title="設定">⚙</button>
+<dialog id="settingsDialog" aria-labelledby="settingsTitle">
+  <form method="dialog" id="settingsForm">
+    <div class="dialog-head"><h2 id="settingsTitle">設定</h2><button id="closeSettingsX" class="ghost" value="cancel" aria-label="設定を閉じる">閉じる</button></div>
+    <div class="dialog-body">
+      <div class="field"><label for="lineColor">囲み線の色</label><input id="lineColor" type="color" value="#d50000"><small>プレビューと起案用PDFに使用します。公開用PDFは黒で塗りつぶします。</small></div>
+      <div class="field"><label for="lineWidth">囲み線の太さ（pt）</label><input id="lineWidth" type="number" min="0.5" max="30" step="0.5" value="3"></div>
+      <div class="field"><label for="publicFilename">公開用ファイル名</label><input id="publicFilename" type="text"></div>
+      <div class="field"><label for="draftFilename">起案用ファイル名</label><input id="draftFilename" type="text"></div>
+      <div class="field"><label for="dpi">出力PDFの画質（DPI）</label><select id="dpi"><option value="150">150 DPI（軽量）</option><option value="200">200 DPI</option><option value="300" selected>300 DPI（標準）</option><option value="400">400 DPI（高精細）</option><option value="600">600 DPI（大容量）</option></select><small>高DPIほどメモリ使用量とファイルサイズが増えます。</small></div>
+    </div>
+    <div class="dialog-actions"><button value="cancel" type="submit">キャンセル</button><button id="applySettings" value="default" type="submit" class="primary">適用</button></div>
+  </form>
+</dialog>
+<script>
+'use strict';
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const els = {drop:$('#dropzone'), file:$('#fileInput'), select:$('#selectFile'), meta:$('#fileMeta'), workspace:$('#workspace'), pdf:$('#pdfCanvas'), overlay:$('#overlay'), wrap:$('#canvasWrap'), page:$('#pageNumber'), count:$('#pageCount'), status:$('#status'), progress:$('#progress'), dialog:$('#settingsDialog')};
+  const ctx = els.pdf.getContext('2d', {alpha:false});
+  const octx = els.overlay.getContext('2d');
+  let pdfDoc = null, originalBytes = null, currentPage = 1, originalName = '', activeTool = 'rect', drawing = false, start = null, working = null, busy = false;
+  let marks = new Map();
+  let settings = {lineColor:'#d50000', lineWidth:3, dpi:300, publicFilename:'', draftFilename:''};
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+  function baseName(name){ return name.replace(/\.pdf$/i,''); }
+  function safePdfName(value, fallback){ let v=(value||'').trim().replace(/[\\/:*?"<>|\x00-\x1f]/g,'_'); if(!v)v=fallback; return /\.pdf$/i.test(v)?v:v+'.pdf'; }
+  function setStatus(text, error=false){ els.status.textContent=text; els.status.classList.toggle('error',error); }
+  function setBusy(value){ busy=value; document.querySelectorAll('button,input,select').forEach(el=>{ if(!el.closest('dialog')) el.disabled=value; }); els.progress.hidden=!value; }
+  function configureNames(){ const b=baseName(originalName||'document'); settings.publicFilename=`${b}_公開用.pdf`; settings.draftFilename=`${b}_起案用.pdf`; $('#publicFilename').value=settings.publicFilename; $('#draftFilename').value=settings.draftFilename; }
+
+  async function loadFile(file){
+    if(!file || (file.type!=='application/pdf' && !/\.pdf$/i.test(file.name))){ setStatus('PDFファイルを選択してください。',true); return; }
+    try{
+      setBusy(true); setStatus('PDFを読み込んでいます…'); originalName=file.name; originalBytes=new Uint8Array(await file.arrayBuffer());
+      pdfDoc=await pdfjsLib.getDocument({data:originalBytes.slice()}).promise; marks=new Map(); currentPage=1; configureNames();
+      els.meta.textContent=`${file.name}（${pdfDoc.numPages}ページ、${(file.size/1024/1024).toFixed(2)} MB）`; els.drop.hidden=true; els.workspace.classList.add('active'); els.count.textContent=`/ ${pdfDoc.numPages}`; els.page.max=pdfDoc.numPages;
+      await renderPage(); setStatus('読み込みました。非公開にする範囲を囲んでください。');
+    }catch(e){ console.error(e); setStatus('PDFを読み込めませんでした。破損・暗号化・パスワード保護の有無を確認してください。',true); }
+    finally{ setBusy(false); updateNav(); }
+  }
+
+  async function renderPage(){
+    if(!pdfDoc)return; const page=await pdfDoc.getPage(currentPage); const raw=page.getViewport({scale:1});
+    const maxW=Math.min(1100, Math.max(320, document.documentElement.clientWidth-80)); const scale=Math.min(1.7,maxW/raw.width); const vp=page.getViewport({scale});
+    els.pdf.width=Math.ceil(vp.width); els.pdf.height=Math.ceil(vp.height); els.overlay.width=els.pdf.width; els.overlay.height=els.pdf.height; els.wrap.style.width=els.pdf.width+'px'; els.wrap.style.height=els.pdf.height+'px';
+    ctx.fillStyle='#fff';ctx.fillRect(0,0,els.pdf.width,els.pdf.height); await page.render({canvasContext:ctx,viewport:vp,annotationMode:0}).promise;
+    els.page.value=currentPage; redrawOverlay(); updateNav();
+  }
+  function updateNav(){ const n=pdfDoc?.numPages||0; $('#firstPage').disabled=busy||currentPage<=1;$('#prevPage').disabled=busy||currentPage<=1;$('#nextPage').disabled=busy||currentPage>=n;$('#lastPage').disabled=busy||currentPage>=n; }
+  function pageMarks(){ if(!marks.has(currentPage))marks.set(currentPage,[]); return marks.get(currentPage); }
+  function point(ev){ const r=els.overlay.getBoundingClientRect(); return {x:(ev.clientX-r.left)/r.width, y:(ev.clientY-r.top)/r.height}; }
+  function drawMark(c,m,w,h,color=settings.lineColor,linePt=settings.lineWidth,fill=false){
+    c.save(); c.strokeStyle=color; c.fillStyle=color; c.lineWidth=Math.max(1,linePt*(w/(els.overlay.width||w))); c.lineJoin='round'; c.lineCap='round'; c.beginPath();
+    if(m.type==='rect'){ const x=m.x*w,y=m.y*h,rw=m.w*w,rh=m.h*h;c.rect(x,y,rw,rh); }
+    else if(m.type==='ellipse'){ c.ellipse((m.x+m.w/2)*w,(m.y+m.h/2)*h,Math.abs(m.w*w/2),Math.abs(m.h*h/2),0,0,Math.PI*2); }
+    else if(m.type==='freehand' && m.points.length){ c.moveTo(m.points[0].x*w,m.points[0].y*h);m.points.slice(1).forEach(p=>c.lineTo(p.x*w,p.y*h)); if(m.closed!==false)c.closePath(); }
+    if(fill)c.fill(); c.stroke(); c.restore();
+  }
+  function redrawOverlay(){ octx.clearRect(0,0,els.overlay.width,els.overlay.height); for(const m of (marks.get(currentPage)||[]))drawMark(octx,m,els.overlay.width,els.overlay.height,settings.lineColor,settings.lineWidth,false); if(working)drawMark(octx,working,els.overlay.width,els.overlay.height,settings.lineColor,settings.lineWidth,false); }
+  function normalizedBox(a,b,type){ return {type,x:Math.min(a.x,b.x),y:Math.min(a.y,b.y),w:Math.abs(b.x-a.x),h:Math.abs(b.y-a.y)}; }
+  els.overlay.addEventListener('pointerdown',ev=>{ if(!pdfDoc||busy)return; drawing=true; els.overlay.setPointerCapture(ev.pointerId); start=point(ev); working=activeTool==='freehand'?{type:'freehand',points:[start],closed:false}:normalizedBox(start,start,activeTool); redrawOverlay(); });
+  els.overlay.addEventListener('pointermove',ev=>{ if(!drawing)return; const p=point(ev); if(activeTool==='freehand'){ const last=working.points.at(-1); if(Math.hypot(p.x-last.x,p.y-last.y)>.002)working.points.push(p); }else working=normalizedBox(start,p,activeTool); redrawOverlay(); });
+  function finishDraw(ev){ if(!drawing)return; drawing=false; try{els.overlay.releasePointerCapture(ev.pointerId)}catch(_){} if(working){ if(working.type==='freehand')working.closed=true; const valid=working.type==='freehand'?working.points.length>2:(working.w>.003&&working.h>.003); if(valid)pageMarks().push(working); } working=null; redrawOverlay(); }
+  els.overlay.addEventListener('pointerup',finishDraw); els.overlay.addEventListener('pointercancel',finishDraw);
+
+  async function go(n){ if(!pdfDoc||busy)return; currentPage=Math.max(1,Math.min(pdfDoc.numPages,Number(n)||1)); await renderPage(); }
+  $('#firstPage').onclick=()=>go(1);$('#prevPage').onclick=()=>go(currentPage-1);$('#nextPage').onclick=()=>go(currentPage+1);$('#lastPage').onclick=()=>go(pdfDoc.numPages);els.page.onchange=()=>go(els.page.value);
+  document.querySelectorAll('.tool').forEach(btn=>btn.onclick=()=>{activeTool=btn.dataset.tool;document.querySelectorAll('.tool').forEach(b=>b.setAttribute('aria-pressed',String(b===btn)));});
+  $('#undo').onclick=()=>{pageMarks().pop();redrawOverlay();}; $('#clearPage').onclick=()=>{marks.set(currentPage,[]);redrawOverlay();};
+
+  async function resetToInitial(){
+    if(busy)return;
+    try{ if(pdfDoc) await pdfDoc.destroy(); }catch(e){ console.warn(e); }
+    pdfDoc=null; originalBytes=null; originalName=''; currentPage=1; marks=new Map(); working=null; drawing=false;
+    els.file.value=''; els.meta.textContent=''; els.workspace.classList.remove('active'); els.drop.hidden=false;
+    els.count.textContent='/ 0'; els.page.value=1; ctx.clearRect(0,0,els.pdf.width,els.pdf.height); octx.clearRect(0,0,els.overlay.width,els.overlay.height); setStatus('');
+    els.select.focus();
+  }
+  $('#openAnother').onclick=resetToInitial;
+  els.select.onclick=()=>els.file.click(); els.file.onchange=()=>loadFile(els.file.files[0]);
+  ['dragenter','dragover'].forEach(t=>els.drop.addEventListener(t,e=>{e.preventDefault();els.drop.classList.add('drag');})); ['dragleave','drop'].forEach(t=>els.drop.addEventListener(t,e=>{e.preventDefault();els.drop.classList.remove('drag');})); els.drop.addEventListener('drop',e=>loadFile(e.dataTransfer.files[0]));
+
+  $('#openSettings').onclick=()=>{ $('#lineColor').value=settings.lineColor;$('#lineWidth').value=settings.lineWidth;$('#dpi').value=settings.dpi;$('#publicFilename').value=settings.publicFilename;$('#draftFilename').value=settings.draftFilename;els.dialog.showModal(); };
+  $('#settingsForm').addEventListener('submit',e=>{ if(e.submitter?.value==='default'){ settings.lineColor=$('#lineColor').value;settings.lineWidth=Math.max(.5,Math.min(30,Number($('#lineWidth').value)||3));settings.dpi=Math.max(72,Math.min(600,Number($('#dpi').value)||300)); settings.publicFilename=safePdfName($('#publicFilename').value,`${baseName(originalName)}_公開用.pdf`);settings.draftFilename=safePdfName($('#draftFilename').value,`${baseName(originalName)}_起案用.pdf`);redrawOverlay(); } });
+
+  function canvasBlob(canvas,type='image/jpeg',quality=.94){ return new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('画像変換に失敗しました。')),type,quality)); }
+  function paintMarks(target, list, mode, pageWidthPt){ const c=target.getContext('2d'); const scale=target.width/pageWidthPt; for(const m of list){ c.save(); c.strokeStyle=mode==='public'?'#000':settings.lineColor;c.fillStyle='#000';c.lineWidth=Math.max(1,settings.lineWidth*scale);c.lineJoin='round';c.lineCap='round';c.beginPath(); const w=target.width,h=target.height; if(m.type==='rect')c.rect(m.x*w,m.y*h,m.w*w,m.h*h); else if(m.type==='ellipse')c.ellipse((m.x+m.w/2)*w,(m.y+m.h/2)*h,Math.abs(m.w*w/2),Math.abs(m.h*h/2),0,0,Math.PI*2); else if(m.points.length){c.moveTo(m.points[0].x*w,m.points[0].y*h);m.points.slice(1).forEach(p=>c.lineTo(p.x*w,p.y*h));c.closePath();} if(mode==='public'){c.fill();}else{c.stroke();}c.restore(); } }
+  async function buildPdf(mode){
+    const out=await PDFLib.PDFDocument.create(); out.setCreator('PDF黒塗り・ラスタライズツール'); out.setProducer('pdf-lib');
+    for(let i=1;i<=pdfDoc.numPages;i++){
+      setStatus(`${mode==='public'?'公開用':'起案用'}PDFを作成中… ${i} / ${pdfDoc.numPages}`); els.progress.value=Math.round((i-1)/pdfDoc.numPages*100);
+      const page=await pdfDoc.getPage(i); const baseVp=page.getViewport({scale:1}); const scale=settings.dpi/72; const vp=page.getViewport({scale});
+      const canvas=document.createElement('canvas');canvas.width=Math.ceil(vp.width);canvas.height=Math.ceil(vp.height);const c=canvas.getContext('2d',{alpha:false});c.fillStyle='#fff';c.fillRect(0,0,canvas.width,canvas.height);
+      await page.render({canvasContext:c,viewport:vp,annotationMode:0}).promise; paintMarks(canvas,marks.get(i)||[],mode,baseVp.width);
+      const blob=await canvasBlob(canvas,'image/jpeg',.94); const img=await out.embedJpg(new Uint8Array(await blob.arrayBuffer())); const p=out.addPage([baseVp.width,baseVp.height]);p.drawImage(img,{x:0,y:0,width:baseVp.width,height:baseVp.height});
+      canvas.width=1;canvas.height=1; page.cleanup(); await new Promise(r=>setTimeout(r,0));
+    }
+    els.progress.value=100; return out.save({useObjectStreams:true});
+  }
+  function download(bytes,name){ const blob=new Blob([bytes],{type:'application/pdf'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000); }
+  async function generate(mode){ if(!pdfDoc||busy)return; try{setBusy(true);const bytes=await buildPdf(mode);download(bytes,mode==='public'?settings.publicFilename:settings.draftFilename);setStatus(`${mode==='public'?'公開用':'起案用'}PDFを作成しました。`);}catch(e){console.error(e);setStatus('PDFの作成に失敗しました。高DPIまたは大容量PDFの場合は、画質を下げて再試行してください。',true);}finally{setBusy(false);updateNav();} }
+  $('#downloadPublic').onclick=()=>generate('public'); $('#downloadDraft').onclick=()=>generate('draft');
+  window.addEventListener('error',e=>{ if(/pdf|worker|script/i.test(e.message||''))setStatus('ライブラリを読み込めませんでした。インターネット接続または組織の通信制限を確認してください。',true); });
+})();
+</script>
+</body>
+</html>
