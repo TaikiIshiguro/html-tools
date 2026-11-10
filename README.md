@@ -1,4 +1,4 @@
-# html-tools
+# HTMLツール集
 HTML/CSS/JavaScriptで動作するちょっとしたツール集です。`apps`内の各ツールは単一HTML（CSS・JavaScriptはHTML内に記載）で作成しているので、個別にダウンロードして利用することもできます。
 
 ツールのデザインに当たっては，[デジタル庁デザインシステム](https://design.digital.go.jp/dads/)を参考にしています。
