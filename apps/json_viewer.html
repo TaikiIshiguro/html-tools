@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JSONビューワー</title>
+<style>
+:root{--blue:#005ea8;--blue-dark:#003e73;--blue-pale:#eaf4fb;--border:#b8c4ce;--text:#1a1a1a;--muted:#59636e;--bg:#f5f7f8;--danger:#b42318;--warn:#8a4b08;--success:#146c43;--focus:#ffbf47;--string:#1b5e20;--number:#7847a3;--boolean:#005ea8;--null:#7a4c00;--empty:#59636e;--omitted:#69737d}
+*{box-sizing:border-box}body{margin:0;font-family:sans-serif;color:var(--text);background:var(--bg);line-height:1.55}button,input,textarea,select{font:inherit}button,input,textarea,select{border:1px solid var(--border);border-radius:4px}button{min-height:40px;padding:.45rem .9rem;background:#fff;cursor:pointer;font-weight:700}button:hover{background:#f1f5f8}button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--focus);outline-offset:2px}.primary{background:var(--blue);border-color:var(--blue);color:#fff}.primary:hover{background:var(--blue-dark)}.danger{color:var(--danger)}.app-header{background:#fff;border-bottom:4px solid var(--blue)}.header-inner,.main{max-width:1500px;margin:auto;padding:1rem 1.25rem}.app-header h1{font-size:1.55rem;margin:0}.subtitle{color:var(--muted);margin:.2rem 0 0}.panel{background:#fff;border:1px solid var(--border);border-radius:6px;padding:1rem;margin-bottom:1rem}.panel h2{font-size:1.15rem;margin:0 0 .75rem}.input-actions,.toolbar,.view-tabs,.subtabs{display:flex;gap:.55rem;align-items:center;flex-wrap:wrap}.file-label{display:inline-flex;align-items:center;min-height:40px;padding:.45rem .9rem;background:#fff;border:1px solid var(--border);border-radius:4px;font-weight:700;cursor:pointer}.file-label input{position:absolute;width:1px;height:1px;opacity:0}.drop-zone{margin-top:.75rem;border:2px dashed #8294a3;border-radius:6px;padding:.7rem;text-align:center;color:var(--muted)}.drop-zone.dragover{border-color:var(--blue);background:var(--blue-pale)}textarea{width:100%;min-height:180px;margin-top:.75rem;padding:.75rem;resize:vertical;font-family:monospace;line-height:1.45}.message{display:none;margin-top:.75rem;padding:.65rem .8rem;border-left:5px solid;border-radius:3px;white-space:pre-wrap}.message.show{display:block}.message.error{background:#fff0f0;border-color:var(--danger);color:#6d1710}.message.warning{background:#fff8e7;border-color:#d97706;color:#6b3b08}.message.success{background:#eaf7ef;border-color:var(--success);color:#0e5534}.view-tabs{border-bottom:1px solid var(--border);margin-bottom:1rem}.tab{border:0;border-radius:0;border-bottom:4px solid transparent}.tab[aria-selected="true"]{color:var(--blue-dark);border-bottom-color:var(--blue);background:var(--blue-pale)}.toolbar{justify-content:space-between}.toolbar-group{display:flex;gap:.45rem;align-items:center;flex-wrap:wrap}.toolbar label{font-weight:700}.toolbar input[type="search"]{min-height:40px;padding:.45rem .65rem;width:min(320px,75vw)}.toolbar select{min-height:40px;padding:.35rem}.status{font-size:.9rem;color:var(--muted);margin:.7rem 0}.output-wrap{height:min(64vh,760px);min-height:360px;overflow:auto;border:1px solid var(--border);background:#fff;position:relative}.placeholder{padding:3rem 1rem;text-align:center;color:var(--muted)}table{border-collapse:separate;border-spacing:0;min-width:100%;font-size:.92rem}th,td{border-right:1px solid #d5dde4;border-bottom:1px solid #d5dde4;padding:.42rem .55rem;text-align:left;vertical-align:top;max-width:420px;word-break:break-word}th{position:sticky;top:0;z-index:3;background:#e8f1f8;border-bottom:2px solid #8499aa;white-space:nowrap}th:first-child,td:first-child{position:sticky;left:0;z-index:2;background:#f4f7f9}.row-number{min-width:4rem;text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}tr:hover td{background:#fff8d8}tr:hover td:first-child{background:#f9efc2}.nowrap td{white-space:nowrap;max-width:none}.cell{display:flex;gap:.35rem;align-items:flex-start}.type-label{font-size:.72rem;border:1px solid currentColor;border-radius:3px;padding:0 .25rem;line-height:1.4;white-space:nowrap;margin-top:.15rem}.type-string{color:var(--string)}.type-number{color:var(--number)}.type-boolean{color:var(--boolean)}.type-null{color:var(--null);font-style:italic}.type-empty{color:var(--empty);font-style:italic}.type-omitted{color:var(--omitted);font-style:italic}.highlight{background:#fff07a;color:#111;padding:0 .05rem}.subtabs{margin:.5rem 0}.subtab{min-height:34px;padding:.25rem .65rem}.subtab.active{background:var(--blue);color:#fff;border-color:var(--blue)}.tree{font-family:monospace;white-space:pre-wrap;padding:.8rem;margin:0;min-width:max-content}.tree.nowrap{white-space:pre}.tree-line{display:block;min-height:1.45em}.tree-toggle{min-height:0;border:0;padding:0 .25rem;margin:0 .1rem 0 0;font-family:monospace;background:transparent}.tree-toggle:hover{background:var(--blue-pale)}.tree-label{font-weight:700}.tree-children.collapsed{display:none}.tree-string{color:var(--string)}.tree-number{color:var(--number)}.tree-boolean{color:var(--boolean)}.tree-null{color:var(--null);font-style:italic}.tree-empty{color:var(--empty);font-style:italic}.footer-note{font-size:.86rem;color:var(--muted);margin-top:.7rem}@media(max-width:700px){.header-inner,.main{padding:.75rem}.panel{padding:.75rem}.toolbar{align-items:flex-start}.output-wrap{min-height:300px;height:55vh}.app-header h1{font-size:1.3rem}}
+</style>
+</head>
+<body>
+<header class="app-header"><div class="header-inner"><h1>JSONビューワー</h1><p class="subtitle">JSONを表やツリー形式に変換します。</p></div></header>
+<main class="main">
+<section class="panel" aria-labelledby="input-title">
+<h2 id="input-title">1. JSONを入力</h2>
+<div class="input-actions">
+<label class="file-label">JSONファイルを選択<input id="fileInput" type="file" accept=".json,application/json"></label>
+<button id="parseButton" class="primary" type="button">JSONを解析</button>
+<button id="clearButton" type="button">入力内容をクリア</button>
+<button id="sampleButton" type="button">サンプルを入力</button>
+</div>
+<div id="dropZone" class="drop-zone">.json ファイルをここへドラッグ＆ドロップ</div>
+<label for="jsonInput"><strong>JSON入力欄</strong></label>
+<textarea id="jsonInput" spellcheck="false" placeholder='例: {"部署":"総務課","職員":[{"氏名":"田中","資格":["基本情報","応用情報"]}]}'></textarea>
+<div id="message" class="message" role="alert" aria-live="polite"></div>
+</section>
+<section class="panel" aria-labelledby="view-title">
+<h2 id="view-title">2. 表示・エクスポート</h2>
+<div class="view-tabs" role="tablist" aria-label="表示形式">
+<button class="tab" role="tab" data-view="flat" aria-selected="true" type="button">展開表</button>
+<button class="tab" role="tab" data-view="hierRepeat" aria-selected="false" type="button">階層表（繰り返しあり）</button>
+<button class="tab" role="tab" data-view="hierCompact" aria-selected="false" type="button">階層表（繰り返しなし）</button>
+<button class="tab" role="tab" data-view="tree" aria-selected="false" type="button">ツリー</button>
+</div>
+<div class="toolbar">
+<div class="toolbar-group"><label for="searchInput">全体検索</label><input id="searchInput" type="search" placeholder="項目名または値を検索"><button id="wrapButton" type="button" aria-pressed="true">折り返し：オン</button><label for="widthSelect">列幅</label><select id="widthSelect"><option value="narrow">狭い</option><option value="standard" selected>標準</option><option value="wide">広い</option><option value="auto">自動</option></select></div>
+<div class="toolbar-group"><button id="copyButton" type="button">現在のビューをコピー</button><button id="downloadButton" class="primary" type="button">現在のビューを保存</button><button id="downloadAllButton" type="button">全表を個別保存</button></div>
+</div>
+<div id="productControls" class="message warning" aria-live="polite"></div>
+<div id="subtabs" class="subtabs" role="tablist" aria-label="分割された表"></div>
+<div id="status" class="status" aria-live="polite">JSONを入力して「JSONを解析」を押してください。</div>
+<div id="output" class="output-wrap"><div class="placeholder">解析結果がここに表示されます。</div></div>
+<p class="footer-note">大量データは端末性能により表示に時間がかかります。検索は現在表示中の表またはツリーに適用されます。</p>
+</section>
+</main>
+<script>
+'use strict';
+
+// アプリケーションの状態。元のJSONと表示用データを分離して保持する。
+const state = { source:null, view:'flat', wrap:true, width:'standard', search:'', mode:'split', tables:[], activeTable:0, metrics:null };
+const el = id => document.getElementById(id);
+const ui = { input:el('jsonInput'), file:el('fileInput'), message:el('message'), output:el('output'), status:el('status'), subtabs:el('subtabs'), product:el('productControls'), search:el('searchInput'), wrap:el('wrapButton'), width:el('widthSelect'), downloadAll:el('downloadAllButton') };
+const SAMPLE = {部署:'総務課',職員:[{氏名:'田中',在職:true,資格:['基本情報','応用情報'],備考:''},{氏名:'佐藤',在職:false,資格:['ITパスポート'],備考:null}],事業:['庁内DX','文書管理'],空配列:[],空オブジェクト:{}};
+
+// 値の種類を判定する。
+function valueType(value){if(value===null)return'null';if(Array.isArray(value))return'array';return typeof value==='object'?'object':typeof value;}
+function isContainer(value){return value!==null&&typeof value==='object';}
+function displayValue(value){const t=valueType(value);if(t==='null')return'null';if(t==='string'&&value==='')return'空文字';if(t==='array'&&value.length===0)return'空配列 []';if(t==='object'&&Object.keys(value).length===0)return'空オブジェクト {}';return String(value);}
+function typeLabel(value){const t=valueType(value);return({string:value===''?'空':'文字',number:'数値',boolean:'真偽',null:'null',array:'配列',object:'物'}[t]||t);}
+function makeCell(value, omitted=false){return {value, type:omitted?'omitted':valueType(value), omitted};}
+
+// 解析エラーから可能な範囲で位置を示す。
+function explainParseError(error,text){let msg='JSONとして解析できません。\n'+error.message;const match=error.message.match(/position\s+(\d+)/i);if(match){const pos=Number(match[1]);const before=text.slice(0,pos);const line=before.split('\n').length;const column=pos-before.lastIndexOf('\n');msg+=`\n位置: ${line}行 ${column}列付近`;const lines=text.split('\n');if(lines[line-1])msg+=`\n${lines[line-1]}\n${' '.repeat(Math.max(0,column-1))}↑`; }return msg;}
+function showMessage(text,type='success'){ui.message.textContent=text;ui.message.className=`message show ${type}`;}
+function clearMessage(){ui.message.textContent='';ui.message.className='message';}
+
+// 深さ・ノード数・独立配列の存在を走査する。
+function inspectJson(root){let nodes=0,maxDepth=0,productPoints=[];const walk=(value,depth,path)=>{nodes++;maxDepth=Math.max(maxDepth,depth);if(value&&typeof value==='object'){if(!Array.isArray(value)){const arrays=Object.entries(value).filter(([,v])=>Array.isArray(v)&&v.length);if(arrays.length>1)productPoints.push({path:path||'ルート',keys:arrays.map(([k])=>k),count:arrays.reduce((n,[,v])=>n*v.length,1)});}Object.entries(value).forEach(([k,v])=>walk(v,depth+1,path?`${path}.${k}`:k));}};walk(root,0,'');return{nodes,maxDepth,productPoints};}
+
+// オブジェクト内に複数の独立配列がある箇所を、別表候補として収集する。
+function buildSplitRoots(root){const metrics=inspectJson(root);if(!metrics.productPoints.length)return[{name:'全体',data:root}];const first=metrics.productPoints[0];let target=root;if(first.path!=='ルート'){for(const part of first.path.split('.'))target=target?.[part];}const scalarContext={};if(target&&typeof target==='object'&&!Array.isArray(target)){for(const [k,v] of Object.entries(target))if(!Array.isArray(v))scalarContext[k]=v;return first.keys.map(key=>({name:key,data:{...scalarContext,[key]:target[key]}}));}return[{name:'全体',data:root}];}
+
+// フラット表用に、配列を直積展開しながら行を作る。
+function flattenValue(value,path=''){
+ if(!isContainer(value)||((Array.isArray(value)&&value.length===0)||(!Array.isArray(value)&&Object.keys(value).length===0))){return[{[path||'値']:makeCell(value)}];}
+ if(Array.isArray(value)){
+   if(value.length===0)return[{[path||'値']:makeCell(value)}];
+   return value.flatMap(item=>flattenValue(item,path));
+ }
+ let rows=[{}];
+ for(const [key,child] of Object.entries(value)){
+   const childPath=path?`${path}.${key}`:key;
+   const childRows=flattenValue(child,childPath);
+   const combined=[];for(const left of rows)for(const right of childRows)combined.push({...left,...right});rows=combined;
+ }
+ return rows.length?rows:[{[path||'値']:makeCell(value)}];
+}
+function rowsToTable(rows,name='全体'){const columns=[];for(const row of rows)for(const key of Object.keys(row))if(!columns.includes(key))columns.push(key);return{name,columns,rows:rows.map(row=>Object.fromEntries(columns.map(c=>[c,row[c]??makeCell('',false)])))};}
+function makeFlatTable(root,name){return rowsToTable(flattenValue(root),name);}
+
+// 葉までの経路を抽出し、階層表を作る。各セルは「項目名：値」で関係を保持する。
+function collectLeafPaths(value,label='ルート',ancestors=[],out=[]){
+ const t=valueType(value);const empty=(t==='array'&&value.length===0)||(t==='object'&&Object.keys(value).length===0);
+ if(!isContainer(value)||empty){out.push([...ancestors,{label,value,type:t}]);return out;}
+ if(Array.isArray(value)){value.forEach((item,index)=>collectLeafPaths(item,`${label}[${index+1}]`,ancestors,out));return out;}
+ for(const [key,child] of Object.entries(value)){
+   if(isContainer(child)&&!((Array.isArray(child)&&child.length===0)||(!Array.isArray(child)&&Object.keys(child).length===0)))collectLeafPaths(child,key,[...ancestors,{label:key,value:null,branch:true}],out);
+   else out.push([...ancestors,{label:key,value:child,type:valueType(child)}]);
+ }
+ return out;
+}
+function makeHierarchyTable(root,name,compact){
+ const paths=collectLeafPaths(root);const depth=Math.max(1,...paths.map(p=>p.length));const columns=Array.from({length:depth},(_,i)=>`第${i+1}階層`);
+ let previous=[];
+ const rows=paths.map(path=>{const row={};let changed=false;for(let i=0;i<depth;i++){const node=path[i];if(!node){row[columns[i]]=makeCell('');continue;}const text=node.branch?node.label:`${node.label}：${displayValue(node.value)}`;const signature=`${node.label}|${node.branch?'branch':JSON.stringify(node.value)}`;if(compact&&!changed&&previous[i]===signature){row[columns[i]]=makeCell('（繰り返し省略）',true);}else{changed=true;row[columns[i]]=node.branch?{value:text,type:'object',branch:true}:makeCell(text);}previous[i]=signature;}previous=path.map(n=>`${n.label}|${n.branch?'branch':JSON.stringify(n.value)}`);return row;});
+ return{name,columns,rows};
+}
+
+// プレーンテキストのツリーを生成する。
+function buildTreeText(root){const lines=[];const walk=(value,label,prefix,isLast,isRoot=false)=>{const connector=isRoot?'':(isLast?'└─':'├─');const t=valueType(value);const empty=(t==='array'&&value.length===0)||(t==='object'&&Object.keys(value).length===0);if(!isContainer(value)||empty){lines.push(`${prefix}${connector}${label?label+'：':''}${displayValue(value)}`);return;}lines.push(`${prefix}${connector}${label}`);const entries=Array.isArray(value)?value.map((v,i)=>[String(i+1),v]):Object.entries(value);const nextPrefix=prefix+(isRoot?'':(isLast?'  ':'│ '));entries.forEach(([k,v],i)=>walk(v,k,nextPrefix,i===entries.length-1,false));};if(isContainer(root)){const entries=Array.isArray(root)?root.map((v,i)=>[String(i+1),v]):Object.entries(root);entries.forEach(([k,v],i)=>walk(v,k,'',i===entries.length-1,false));}else walk(root,'値','',true,true);return lines.join('\n');}
+
+// 安全なDOM APIだけを使い、検索語を強調する。
+function appendHighlightedText(parent,text,query){const s=String(text);if(!query){parent.append(document.createTextNode(s));return;}const lower=s.toLocaleLowerCase();const q=query.toLocaleLowerCase();let start=0,index;while((index=lower.indexOf(q,start))!==-1){parent.append(document.createTextNode(s.slice(start,index)));const mark=document.createElement('mark');mark.className='highlight';mark.textContent=s.slice(index,index+query.length);parent.append(mark);start=index+query.length;}parent.append(document.createTextNode(s.slice(start)));}
+function renderCell(cell){const td=document.createElement('td');const wrap=document.createElement('div');wrap.className='cell';const badge=document.createElement('span');badge.className=`type-label type-${cell.type}`;badge.textContent=cell.omitted?'省略':cell.type==='object'?'階層':typeLabel(cell.value);const value=document.createElement('span');value.className=`type-${cell.type}`;appendHighlightedText(value,cell.omitted?'…':displayValue(cell.value),state.search);if(cell.omitted)td.title='直前の行と同じ親項目のため、表示を省略しています。元データの空値ではありません。';wrap.append(badge,value);td.append(wrap);return td;}
+function filteredRows(table){if(!state.search)return table.rows;const q=state.search.toLocaleLowerCase();return table.rows.filter(row=>table.columns.some(c=>displayValue(row[c]?.value??'').toLocaleLowerCase().includes(q)||c.toLocaleLowerCase().includes(q)));}
+function renderTable(table){
+ const rows=filteredRows(table);const tableEl=document.createElement('table');tableEl.className=state.wrap?'':'nowrap';const sizes={narrow:'220px',standard:'320px',wide:'480px',auto:'none'};tableEl.style.setProperty('--cell-width',sizes[state.width]);const thead=document.createElement('thead');const tr=document.createElement('tr');const n=document.createElement('th');n.textContent='行';n.className='row-number';tr.append(n);table.columns.forEach(c=>{const th=document.createElement('th');appendHighlightedText(th,c,state.search);if(state.width!=='auto')th.style.minWidth=sizes[state.width];tr.append(th);});thead.append(tr);tableEl.append(thead);const tbody=document.createElement('tbody');rows.forEach((row,i)=>{const tr=document.createElement('tr');const nr=document.createElement('td');nr.textContent=String(i+1);nr.className='row-number';tr.append(nr);table.columns.forEach(c=>tr.append(renderCell(row[c]??makeCell(''))));tbody.append(tr);});tableEl.append(tbody);ui.output.replaceChildren(tableEl);ui.status.textContent=`${table.name}：${rows.length.toLocaleString()}行 × ${table.columns.length.toLocaleString()}列${state.search?'（検索絞り込み中）':''}`;
+}
+
+// 折り畳み可能な画面用ツリーをDOMで生成する。
+function renderTree(){
+ const root=document.createElement('div');root.className=`tree ${state.wrap?'':'nowrap'}`;const query=state.search.toLocaleLowerCase();
+ const build=(value,label,prefix,isLast)=>{const node=document.createElement('div');const line=document.createElement('span');line.className='tree-line';const connector=isLast?'└─':'├─';line.append(document.createTextNode(prefix+connector));const t=valueType(value);const empty=isContainer(value)&&((Array.isArray(value)&&value.length===0)||(!Array.isArray(value)&&Object.keys(value).length===0));const matches=!query||`${label} ${displayValue(value)}`.toLocaleLowerCase().includes(query);
+ if(isContainer(value)&&!empty){const toggle=document.createElement('button');toggle.type='button';toggle.className='tree-toggle';toggle.textContent='▼';toggle.setAttribute('aria-label',`${label}を折り畳む`);line.append(toggle);const lab=document.createElement('span');lab.className='tree-label';appendHighlightedText(lab,label,state.search);line.append(lab);node.append(line);const children=document.createElement('div');children.className='tree-children';const entries=Array.isArray(value)?value.map((v,i)=>[String(i+1),v]):Object.entries(value);entries.forEach(([k,v],i)=>children.append(build(v,k,prefix+(isLast?'  ':'│ '),i===entries.length-1)));toggle.addEventListener('click',()=>{const collapsed=children.classList.toggle('collapsed');toggle.textContent=collapsed?'▶':'▼';toggle.setAttribute('aria-label',`${label}を${collapsed?'展開':'折り畳み'}する`);});node.append(children);}
+ else{const text=document.createElement('span');text.className=`tree-${t==='string'&&value===''?'empty':t}`;appendHighlightedText(text,`${label}：${displayValue(value)}`,state.search);line.append(text);node.append(line);if(query&&!matches)node.hidden=true;}return node;};
+ if(isContainer(state.source)){const entries=Array.isArray(state.source)?state.source.map((v,i)=>[String(i+1),v]):Object.entries(state.source);entries.forEach(([k,v],i)=>root.append(build(v,k,'',i===entries.length-1)));}else root.append(build(state.source,'値','',true));ui.output.replaceChildren(root);ui.status.textContent=`ツリービュー：${state.metrics.nodes.toLocaleString()}ノード、最大${state.metrics.maxDepth}階層`;
+}
+
+// 現在のモードとビューから表示用表を生成する。
+function regenerateTables(){if(state.source===null)return;const roots=state.mode==='split'?buildSplitRoots(state.source):[{name:'直積展開',data:state.source}];state.tables=roots.map(item=>state.view==='flat'?makeFlatTable(item.data,item.name):makeHierarchyTable(item.data,item.name,state.view==='hierCompact'));state.activeTable=Math.min(state.activeTable,state.tables.length-1);}
+function renderSubtabs(){ui.subtabs.replaceChildren();if(state.view==='tree'||state.tables.length<=1)return;state.tables.forEach((table,i)=>{const b=document.createElement('button');b.type='button';b.className=`subtab ${i===state.activeTable?'active':''}`;b.textContent=table.name;b.addEventListener('click',()=>{state.activeTable=i;render();});ui.subtabs.append(b);});}
+function render(){if(state.source===null)return;if(state.view==='tree'){ui.subtabs.replaceChildren();ui.downloadAll.hidden=true;renderTree();return;}regenerateTables();renderSubtabs();ui.downloadAll.hidden=state.tables.length<=1;renderTable(state.tables[state.activeTable]);}
+
+// 大規模データの警告後、利用者が選べば処理を続行する。
+async function parseInput(){clearMessage();const text=ui.input.value.trim();if(!text){showMessage('JSONを入力してください。','error');return;}let parsed;try{parsed=JSON.parse(text);}catch(error){showMessage(explainParseError(error,text),'error');return;}const bytes=new Blob([text]).size;const metrics=inspectJson(parsed);let previewRows=0;try{previewRows=flattenValue(parsed).length;}catch(error){showMessage('表の生成中にエラーが発生しました: '+error.message,'error');return;}const warnings=[];if(bytes>5*1024*1024)warnings.push(`入力サイズが5MBを超えています（${(bytes/1024/1024).toFixed(1)}MB）。`);if(previewRows>10000)warnings.push(`展開表が10,000行を超える見込みです（${previewRows.toLocaleString()}行）。`);if(metrics.maxDepth>50)warnings.push(`階層が50を超えています（${metrics.maxDepth}階層）。`);if(warnings.length&&!window.confirm(warnings.join('\n')+'\n\n処理を続行しますか？')){showMessage('処理を中止しました。','warning');return;}state.source=parsed;state.metrics=metrics;state.activeTable=0;setupProductWarning(metrics);render();showMessage(`解析しました。${metrics.nodes.toLocaleString()}ノード、最大${metrics.maxDepth}階層です。`,'success');}
+function setupProductWarning(metrics){ui.product.replaceChildren();if(!metrics.productPoints.length){ui.product.className='message';return;}ui.product.className='message show warning';const text=document.createElement('span');text.textContent=`独立した複数配列が見つかりました。直積展開では最大 ${metrics.productPoints[0].count.toLocaleString()} 組になる箇所があります。表示方法： `;const select=document.createElement('select');select.setAttribute('aria-label','配列の展開方法');[['split','配列ごとに別表（推奨）'],['product','直積として1表に展開']].forEach(([v,t])=>{const o=document.createElement('option');o.value=v;o.textContent=t;o.selected=state.mode===v;select.append(o);});select.addEventListener('change',()=>{state.mode=select.value;state.activeTable=0;render();});ui.product.append(text,select);}
+
+// 表をCSV/TSVへ変換する。省略セルは見た目どおり「…」として出力する。
+function tableMatrix(table){return[table.columns,...table.rows.map(row=>table.columns.map(c=>row[c]?.omitted?'…':displayValue(row[c]?.value??'')))];}
+function escapeCsv(value){const s=String(value);return/[",\r\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s;}
+function matrixToCsv(matrix){return matrix.map(row=>row.map(escapeCsv).join(',')).join('\r\n');}
+function matrixToTsv(matrix){return matrix.map(row=>row.map(v=>String(v).replace(/\t/g,'    ')).join('\t')).join('\r\n');}
+function timestamp(){const d=new Date(),p=n=>String(n).padStart(2,'0');return`${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;}
+function safeName(name){return String(name).replace(/[\\/:*?"<>|]/g,'_').slice(0,40)||'table';}
+function downloadText(content,filename,type,bom=false){const blob=new Blob([bom?'\uFEFF':'',content],{type});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+async function copyText(text){try{if(navigator.clipboard&&window.isSecureContext)await navigator.clipboard.writeText(text);else{const area=document.createElement('textarea');area.value=text;area.style.position='fixed';area.style.opacity='0';document.body.append(area);area.select();if(!document.execCommand('copy'))throw new Error('コピー操作が拒否されました。');area.remove();}showMessage('クリップボードへコピーしました。','success');}catch(error){showMessage('コピーできませんでした。ブラウザの権限設定を確認してください。\n'+error.message,'error');}}
+function currentTable(){return state.tables[state.activeTable];}
+function downloadCurrent(){if(state.source===null){showMessage('先にJSONを解析してください。','error');return;}if(state.view==='tree'){downloadText(buildTreeText(state.source),`ツリー_${timestamp()}.txt`,'text/plain;charset=utf-8');}else{const table=currentTable();downloadText(matrixToCsv(tableMatrix(table)),`${safeName(viewName())}_${safeName(table.name)}_${timestamp()}.csv`,'text/csv;charset=utf-8',true);}showMessage('ファイルを保存しました。','success');}
+function downloadAll(){if(state.view==='tree'||!state.tables.length)return;state.tables.forEach((table,i)=>setTimeout(()=>downloadText(matrixToCsv(tableMatrix(table)),`${safeName(viewName())}_${safeName(table.name)}_${timestamp()}.csv`,'text/csv;charset=utf-8',true),i*250));showMessage(`${state.tables.length}個のCSV保存を開始しました。ブラウザが複数ダウンロードの許可を求める場合があります。`,'success');}
+function viewName(){return({flat:'展開表',hierRepeat:'階層表_繰り返しあり',hierCompact:'階層表_繰り返しなし',tree:'ツリー'})[state.view];}
+
+// ファイル読込と画面操作を設定する。
+async function readFile(file){if(!file)return;if(!file.name.toLowerCase().endsWith('.json')&&file.type!=='application/json'){showMessage('.json ファイルを選択してください。','error');return;}try{ui.input.value=await file.text();showMessage(`${file.name} を読み込みました。解析ボタンを押してください。`,'success');}catch(error){showMessage('ファイルを読み込めませんでした。\n'+error.message,'error');}}
+el('parseButton').addEventListener('click',parseInput);el('clearButton').addEventListener('click',()=>{ui.input.value='';ui.file.value='';state.source=null;state.tables=[];ui.output.innerHTML='<div class="placeholder">解析結果がここに表示されます。</div>';ui.status.textContent='JSONを入力して「JSONを解析」を押してください。';ui.subtabs.replaceChildren();ui.product.className='message';clearMessage();});el('sampleButton').addEventListener('click',()=>{ui.input.value=JSON.stringify(SAMPLE,null,2);showMessage('サンプルを入力しました。','success');});ui.file.addEventListener('change',()=>readFile(ui.file.files[0]));
+const drop=el('dropZone');['dragenter','dragover'].forEach(type=>drop.addEventListener(type,e=>{e.preventDefault();drop.classList.add('dragover');}));['dragleave','drop'].forEach(type=>drop.addEventListener(type,e=>{e.preventDefault();drop.classList.remove('dragover');}));drop.addEventListener('drop',e=>readFile(e.dataTransfer.files[0]));
+document.querySelectorAll('.tab').forEach(tab=>tab.addEventListener('click',()=>{state.view=tab.dataset.view;document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',String(t===tab)));render();}));
+ui.search.addEventListener('input',()=>{state.search=ui.search.value;render();});ui.wrap.addEventListener('click',()=>{state.wrap=!state.wrap;ui.wrap.textContent=`折り返し：${state.wrap?'オン':'オフ'}`;ui.wrap.setAttribute('aria-pressed',String(state.wrap));render();});ui.width.addEventListener('change',()=>{state.width=ui.width.value;render();});el('copyButton').addEventListener('click',()=>{if(state.source===null){showMessage('先にJSONを解析してください。','error');return;}copyText(state.view==='tree'?buildTreeText(state.source):matrixToTsv(tableMatrix(currentTable())));});el('downloadButton').addEventListener('click',downloadCurrent);ui.downloadAll.addEventListener('click',downloadAll);ui.downloadAll.hidden=true;
+</script>
+</body>
+</html>
